@@ -2,3 +2,4 @@ node_modules/
 build/
 auth.json
 npm-debug.log
+settings.json

@@ -32,7 +32,7 @@ function main(){
 	const V = `${PKG['name']} ${PKG['version']}`;
 	let winOpt = {
 		title: `${V} - Now Loading`,
-		width: OPT['width'] || 800,
+		width: OPT['width'] || 900,
 		height: OPT['height'] || 600,
 		icon: __dirname + "/logo.ico"
 	};

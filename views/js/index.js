@@ -22,8 +22,8 @@ $(() => {
 			auto: $("#diag-login-auto").is(':checked')
 		});
 	});
-	$data.acts = [];
-	$data.currentAct = 0;
+	$data.acts = {};
+	$data.currentAct = 'opened';
 	if(OPT.auto){
 		ipc.send('cojer', 'Login', OPT.auto);
 	}
@@ -51,6 +51,12 @@ ipc.on('event', (ev, type, data) => {
 		case 'my-rooms':
 			renderMyRooms(data);
 			break;
+		case 'sess-msg':
+			processMessage(data);
+			break;
+		case 'sess-err':
+			console.error(data);
+			break;
 	}
 });
 
@@ -59,11 +65,18 @@ ipc.on('event', (ev, type, data) => {
  * 
  * @param {string} id 액티비티 식별자 
  * @param {string} title 탭 제목
- * @param {*} $obj 액티비티 내용
+ * @param {*} $obj 액티비티 내용. 이 함수 내에서는 생성되는 액티비티 자체로 취급한다.
  */
 function createActivity(id, title, $obj){
-	$data.acts.push([ id, title ]);
-	$stage.acts.append($(`<div id="act-${id}" class="activity">`).append($obj));
+	$stage.acts.append($obj = $(`<div id="act-${id}" class="activity">`).html($obj));
+	$data.acts[id] = {
+		id: id,
+		title: title,
+		ord: Object.keys($data.acts).length,
+
+		$board: $obj.children(".act-board"),
+		$list: $obj.children(".act-list")
+	};
 	renderActTab();
 }
 /**
@@ -72,6 +85,8 @@ function createActivity(id, title, $obj){
  * @param {string} id 액티비티 식별자
  */
 function setActivity(id){
+	$(".at-current").removeClass("at-current");
+	$(`#at-item-${id}`).addClass("at-current");
 	$(".activity").hide();
 	$(`#act-${id}`).show();
 	$data.currentAct = id;
@@ -81,10 +96,10 @@ function setActivity(id){
  */
 function renderActTab(){
 	$stage.actTab.empty();
-	$data.acts.forEach(v => {
+	Object.keys($data.acts).map(v => $data.acts[v]).sort((a, b) => a.ord - b.ord).forEach(v => {
 		$stage.actTab.append(`
-			<div id="at-item-${v[0]}" class="at-item">
-				<label>${v[1]}</label>
+			<div id="at-item-${v.id}" class="at-item" onclick="setActivity('${v.id}');">
+				<label>${v.title}</label>
 			</div>
 		`);
 	});
@@ -98,7 +113,29 @@ function renderMyRooms(list){
 	list.forEach(v => {
 		console.log(v);
 		createActivity(v.id.replace(":", "-"), v.name, `
-			<div>Hello, World!</div>
+			<div class="act-board"></div>
+			<div class="act-list"></div>
+			<div class="act-me">
+				<textarea class="act-chat"></textarea>
+				<button class="act-send">${L('act-mr-send')}</button>
+			</div>
 		`);
 	});
+}
+/**
+ * 세션에서 받은 정보를 처리한다.
+ * 
+ * @param {*} data 받은 정보
+ */
+function processMessage(data){
+	let rId = data.room.id.replace(":", "-");
+
+	console.log(data);
+	$data.acts[rId].$board.append(`
+		<div id="actt-${rId}-${data.id}" class="act-talk">
+			<div class="actt-user">${data.user.nickname}</div>
+			<div class="actt-body">${data.message}</div>
+			<div class="actt-stamp">${data.time.match(/\d\d:\d\d/)}</div>
+		</div>
+	`);
 }

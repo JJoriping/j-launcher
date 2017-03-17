@@ -39,23 +39,44 @@ body{
 		.diag-tail{ position: absolute; bottom: 1px; width: calc(100% - 4px); }
 			.diag-tail>button{ float: right; margin: 0px 1px; width: 80px; }
 #act-tab{
-	float: left;
+	position: absolute;
 	width: 100%;
+	height: 30px;
 	background-color: #333;
 }
 	.at-item{
 		float: left;
 		width: 120px;
 		padding: 5px;
-		margin-right: 1px;
+		margin: 4px 1px 0px 0px;
 		color: #EEE;
 		background-color: #444;
 	}
 		.at-item:hover{ background-color: #555; }
 		#at-item-opened{ width: initial; color: greenyellow; }
+		.at-current{
+			padding-top: 10px;
+			margin: 0px 1px 0px 0px;
+			color: #444 !important;
+			background-color: #EEE !important;
+		}
+#activities{ position: absolute; top: 30px; width: 100%; height: calc(100% - 30px); }
 .activity{
 	display: none;
 	float: left;
 	width: 100%;
 	height: 100%;
 }
+.activity div{ float: left; }
+	.act-board{
+		width: calc(100% - 240px);
+		height: calc(100% - 100px);
+		overflow-y: scroll;
+	}
+		.act-talk{ width: 100%; margin: 2px 0px; }
+			.actt-user{ width: 120px; }
+			.actt-body{ width: calc(100% - 180px); }
+			.actt-stamp{ width: 60px; }
+	.act-me{ width: 100%; height: 100px; }
+		.act-chat{ float: left; padding: 0px; border: 0px; margin: 0px; width: calc(100% - 60px); height: 100%; }
+		.act-send{ float: left; padding: 0px; border: 0px; margin: 0px; width: 60px; height: 100%; }
