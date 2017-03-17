@@ -1,0 +1,25 @@
+doctype html
+- const TITLE = `${L('title')} v${locals.version}`;
+
+mixin Dialog(id, w, h)
+	div.dialog(id=`diag-${id}`, style=`display: none; width: ${w}px; height: ${h}px;`)
+		div.diag-head
+			div.diag-title= L(`diag-${id}`)
+			div.diag-close
+		div.diag-body
+			block
+
+html
+	head
+		title= TITLE
+		link(rel="stylesheet", href="./css/style.css")
+		script(type="text/javascript", src="./js/jquery.js")
+		script(type="text/javascript") function L(key){ return global.LANG[key] || `#${key}`; }; global.LANG = 
+			include ../language.json
+		script(type="text/javascript", src="./js/global.js")
+		block JS
+	body
+		div#Jungle
+			block Jungle
+		div#Middle
+			block Middle

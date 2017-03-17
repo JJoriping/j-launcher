@@ -1,28 +1,28 @@
 {
-  "name": "ncc-desktop",
-  "version": "0.0.4",
-  "description": "",
-  "main": "src/index.js",
+  "name": "j-launcher",
+  "version": "2.0.0",
+  "description": "Client for Naver cafe chatting",
+  "main": "main.js",
   "scripts": {
-    "run": "./node_modules/.bin/electron .",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "package-win": "electron-packager . ncc-desktop --prune --overwrite --platform=win32 --ignore /settings --ignore .*\\.fla --ignore auth\\.json --out ./build && node copy_settings.js /build/ncc-desktop-win32-x64/settings",
-    "package-linux": "electron-packager . ncc-desktop --prune --overwrite --platform=linux --ignore /settings --ignore .*\\.fla --ignore auth\\.json --out=./build && node copy_settings.js /build/ncc-desktop-linux-x64/settings",
-    "package": "npm run package-win && npm run package-linux"
+    "start": "electron .",
+    "package-win": "electron-packager . j-launcher --prune --overwrite --platform=win32 --ignore ./auth.json --out ./build && node finish.js /build/j-launcher-win32-x64"
   },
-  "keywords": ["naver cafe","chat"],
-  "author": "ludev",
+  "repository": "https://github.com/JJoriping/j-launcher.git",
+  "keywords": [
+    "chat"
+  ],
+  "author": "JJoriping",
   "license": "MIT",
-  "dependencies": {
-    "electron": "^1.4.14",
-    "file-type": "^4.1.0",
-    "mmmagic": "^0.4.5",
-    "node-ncc-es6": "^0.3.1",
-    "read-chunk": "^2.0.0"
+  "bugs": {
+    "url": "https://github.com/JJoriping/j-launcher/issues"
   },
-  "devDependencies": {
-    "electron-packager": "^8.5.1",
-    "electron-rebuild": "^1.5.6",
-    "fs-extra": "^2.0.0"
+  "homepage": "https://github.com/JJoriping/j-launcher#readme",
+  "dependencies": {
+    "colors": "^1.1.2",
+    "electron": "^1.4.15",
+    "electron-packager": "^8.6.0",
+    "electron-pug": "^1.5.1",
+    "node-ncc-es6": "^0.3.1",
+    "request": "^2.81.0"
   }
 }

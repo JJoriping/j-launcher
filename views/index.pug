@@ -1,0 +1,26 @@
+extends layout
+
+block JS
+	script(type="text/javascript", src="./js/index.js")
+
+block Jungle
+	+Dialog('login', 300, 300)
+		div.diag-bar
+			label= L('diag-login-id')
+			input#diag-login-id(type="text", placeholder=L('diag-login-id'))
+		div.diag-bar
+			label= L('diag-login-pw')
+			input#diag-login-pw(type="password", placeholder=L('diag-login-pw'))
+		div.diag-bar#diag-login-captcha-box(style='display: none;')
+			label(For='diag-login-captcha')= L('diag-login-captcha')
+			input#diag-login-captcha(type="text", placeholder=L('diag-login-captcha'))
+		div.diag-bar
+			label(for='diag-login-auto')= L('diag-login-auto')
+			input#diag-login-auto(type="checkbox")
+		div.diag-bar#diag-login-output
+		div.diag-bar.diag-tail
+			button#diag-login-ok= L('OK')
+
+block Middle
+	div#act-tab
+	div#activities
