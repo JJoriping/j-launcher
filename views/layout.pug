@@ -13,8 +13,9 @@ html
 	head
 		title= TITLE
 		link(rel="stylesheet", href="./css/style.css")
+		link(rel="stylesheet", href="./css/fa.css")
 		script(type="text/javascript", src="./js/jquery.js")
-		script(type="text/javascript") function L(key){ return global.LANG[key] || `#${key}`; }; global.LANG = 
+		script(type="text/javascript") global.LANG = 
 			include ../language.json
 		script(type="text/javascript", src="./js/global.js")
 		block JS

@@ -5,6 +5,13 @@ const {
 
 let $data = {};
 
+function L(key){
+	let v = global.LANG[key];
+
+	if(v) return v.replace(/\{(\d+?)\}/g, (v, p1) => (arguments[p1] === undefined) ? v : arguments[p1])
+		.replace(/FA\{(.+?)\}/g, (v, p1) => `<i class="fa fa-${p1}"/>`);
+	return "#" + key;
+}
 $(() => {
 	$(".diag-title").on('mousedown', e => {
 		$data.$drag = $(e.currentTarget).parent().parent();

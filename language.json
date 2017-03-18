@@ -14,8 +14,10 @@
 
 	"OK": "확인",
 
+	"loading": "불러오는 중",
 	"login-ok": "로그인에 성공했습니다.",
 	"login-no": "로그인에 실패했습니다.",
+	"sure-quit": "이 방({1})에서 퇴장합니까?",
 
 	"diag-login": "로그인",
 	"diag-login-id": "아이디",
@@ -24,7 +26,23 @@
 	"diag-login-auto": "자동 로그인",
 
 	"act-or-title": "공개 채팅",
-	"act-or-cafe-change": "카페 목록 보기",
+	"act-or-cafe-list": "< 카페 목록 >",
+	"act-or-cafe-select": "(카페를 선택하십시오.)",
+	"act-or-room-count": "총 {1}개의 방",
+	"act-or-room-time-sec": "1분 이내",
+	"act-or-room-time-min": "{1}분 전",
+	"act-or-room-time-hour": "{1}시간 전",
+	"act-or-room-time-day": "{1}일 전",
 
-	"act-mr-send": "전송"
+	"act-mr-user": "FA{users} {1}명",
+	"act-mr-public": "FA{unlock} 공개",
+	"act-mr-private": "FA{lock} 비공개",
+	"act-mr-quit": "나가기",
+	"act-mr-prev-chat": "이전 대화 보기",
+	"act-mr-send": "전송",
+
+	"notice-join": "{1} ({2}) 님이 입장했습니다.",
+	"notice-leave": "{1} ({2}) 님이 퇴장했습니다.",
+
+	"error-100": "이미 참여한 방입니다."
 }

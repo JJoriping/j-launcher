@@ -1,5 +1,5 @@
 node_modules/
 build/
+settings.json
 auth.json
 npm-debug.log
-settings.json
