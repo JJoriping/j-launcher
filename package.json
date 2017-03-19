@@ -1,11 +1,12 @@
 {
   "name": "j-launcher",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Client for Naver cafe chatting",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "package-win": "electron-packager . j-launcher --prune --overwrite --platform=win32 --ignore ./auth.json --out ./build && node finish.js /build/j-launcher-win32-x64"
+    "package-win": "electron-packager . j-launcher --prune --overwrite --platform=win32 --ignore auth\\.json --ignore clipboard\\.png --out ./build && node finish.js /build/j-launcher-win32-x64",
+    "package-linux": "electron-packager . j-launcher --prune --overwrite --platform=linux --ignore auth\\.json --ignore clipboard\\.png --out ./build && node finish.js /build/j-launcher-linux-x64"
   },
   "repository": "https://github.com/JJoriping/j-launcher.git",
   "keywords": [
@@ -19,7 +20,7 @@
   "homepage": "https://github.com/JJoriping/j-launcher#readme",
   "dependencies": {
     "colors": "^1.1.2",
-    "electron": "^1.4.15",
+    "electron": "^1.6.2",
     "electron-packager": "^8.6.0",
     "electron-pug": "^1.5.1",
     "node-ncc-es6": "^0.3.1",

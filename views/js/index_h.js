@@ -5,10 +5,23 @@ const FILTER_IMG = {
 	}],
 	properties: [ "openFile" ]
 };
+const STATUS_CLASS = {
+	'online': "online",
+	'afk': "afk"
+};
+const CHANNEL_MENU = Remote.Menu.buildFromTemplate([
+	{
+		label: L('menu-actli-whisper'),
+		click: () => { Activity.current.$stage.chat.val(`/w ${$data._cTarget} `).focus(); }
+	}
+]);
+const CHANNEL_HOST = "jjo.kr";
+const ACT_OPENED = "opened";
 
 /**
  * 액티비티를 정의한다.
  * 각 액티비티는 방 목록 또는 한 채팅방을 담당하며 탭으로 전환시킬 수 있다.
+ * 한 채팅방은 한 채널과 연관되어 있다.
  */
 class Activity{
 	/**
@@ -48,6 +61,27 @@ class Activity{
 			quit: $obj.find(".act-menu-quit")
 				.on('click', e => this.onMenuQuitClick(e))
 		};
+		if(id != ACT_OPENED) this.initChannel(this.$stage.list);
+	}
+	/**
+	 * 채널을 초기화한다.
+	 * 
+	 * @param {*} $list 채널 이용자 목록을 가리키는 jQuery 객체
+	 */
+	initChannel($list){
+		if(OPT['channel-pw']){
+			this.channel = new Channel(this.id, $list);
+		}else{
+			this.$stage.list.html(`
+				<label>${L('act-mr-chan-no')}</label><br/>
+				<button class="act-mr-chan-go-email" style="color: blue;">${L('act-mr-chan-go-email')}</button>
+			`);
+			this.$stage.list.children(".act-mr-chan-go-email").on('click', e => {
+				$.post(`http://${CHANNEL_HOST}/ncc/email`, { id: $data.myInfo.profile.id }, res => {
+					if(res) $dialog('ce', true).show().find("#diag-ce-target").html(L('diag-ce-target', $data.myInfo.profile.id));
+				});
+			});
+		}
 	}
 	/**
 	 * 이 액티비티가 가지는 방 정보를 설정한다.
@@ -70,7 +104,7 @@ class Activity{
 		this.$stage.board.children(".act-talk").each((i, o) => {
 			let $o = $(o);
 
-			data.push(`[${$o.children(".actt-stamp").html()}] ${$o.children(".actt-user").attr('title')}: ${$o.children(".actt-body").html()}`);
+			data.push(`[${$o.children(".actt-stamp").html()}] ${$o.children(".actt-user").attr('title')}: ${$o.children(".actt-body").html().trim()}`);
 		});
 		ipc.send('cojer', "Save", {
 			path: path,
@@ -157,7 +191,7 @@ class Activity{
 		Remote.dialog.showSaveDialog(Remote.getCurrentWindow(), {
 			title: L('act-mr-save'),
 			defaultPath: `${this.room.name}-${Date.now()}.txt`
-		}, path => requestSaveChat(path.replace(/\\/g, "/")));
+		}, path => this.requestSaveChat(path.replace(/\\/g, "/")));
 	}
 	onMenuQuitClick(e){
 		if(!confirm(L('sure-quit', this.room.name))) return;
@@ -165,3 +199,109 @@ class Activity{
 		this.requestQuit();
 	}
 }
+
+/**
+ * 채널을 정의한다.
+ * 채널에 접속하여 쪼런처를 이용하는 사람들에게 부가 기능을 제공한다.
+ */
+class Channel{
+	static init(id, pw){
+		let socket = new WebSocket(`ws://${CHANNEL_HOST}:525/${id}@${pw}`);
+		
+		socket.onmessage = Channel.onMessage;
+		socket.onclose = Channel.onClose;
+	}
+	static send(type, data){
+		if(!data) data = {};
+		data.type = type;
+		data = JSON.stringify(data);
+
+		if(Channel.socket) Channel.socket.send(data);
+		else Channel._queue.push(data);
+	}
+	static flushQueue(socket){
+		Channel.socket = socket;
+		while(Channel._queue[0]) socket.send(Channel._queue.shift());
+	}
+	static updateUser(user){
+		let $items = $(`.actli-${user.id}`);
+		let status = global.LANG[`diag-status-${user.status}`] || user.status;
+		let title = `${user.nickname} (${user.id})\n${status}`;
+
+		$items.attr('title', title);
+		$items.children(".act-list-item-status")
+			.removeClass("actli-status-online actli-status-custom actli-status-afk")
+			.addClass(`actli-status-${STATUS_CLASS[user.status] || 'custom'}`);
+		$items.find(".act-list-item-nick").html(user.nickname);
+		$items.children(".act-list-item-exordial").html(user.exordial);
+	}
+	static onMessage(e){
+		let data = JSON.parse(e.data);
+		let chan = ($data.acts[data.rId] || {}).channel;
+
+		switch(data.type){
+			case 'welcome':
+				Channel.flushQueue(e.target);
+				break;
+			case 'conn':
+				chan.list.push(data.user);
+				chan.renderList();
+				break;
+			case 'disconn':
+				chan.list = chan.list.filter(v => v.id != data.user.id);
+				chan.renderList();
+				break;
+			case 'list':
+				chan.list = data.list;
+				chan.renderList();
+				break;
+			case 'user':
+				Channel.updateUser(data.user);
+				break;
+			case 'whisper':
+				processWhisper(data);
+				break;
+			default:
+				console.warn("Unhandled data: ", data);
+		}
+	}
+	static onClose(code){
+		$(".act-list").empty().addClass("act-list-closed");
+	}
+
+	constructor(rId, $list){
+		this.rId = rId;
+		this.$list = $list;
+		this.list = [];
+
+		Channel.send('join', { rId: rId });
+	}
+	renderList(){
+		this.$list.removeClass("act-list-closed").empty();
+		this.list.forEach(v => {
+			let $item;
+
+			this.$list.append($item = $(`
+				<div id="actli-${this.rId}-${v.id}" class="act-list-item actli-${v.id}">
+					<div class="act-list-item-status"/>
+					<div class="act-list-item-name ellipse">
+						<label class="act-list-item-nick"/>
+						<label class="act-list-item-id"> (${v.id})</label>
+					</div>
+					<div class="act-list-item-exordial ellipse"/>
+				</div>
+			`.trim()));
+			Channel.updateUser(v);
+			$item.on('click', this.onClick);
+			if(v.id == $data.myInfo.profile.id) $item.addClass("act-list-item-me");
+		});
+	}
+	onClick(e){
+		$data._cTarget = e.currentTarget.id.split('-')[3];
+		CHANNEL_MENU.popup(Remote.getCurrentWindow());
+	}
+	close(){
+		Channel.send('leave', { rId: this.rId });
+	}
+}
+Channel._queue = [];

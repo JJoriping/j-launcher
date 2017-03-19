@@ -4,7 +4,9 @@
 	"menu-account": "계정",
 	"menu-account-login": "로그인",
 	"menu-account-logout": "로그아웃",
-
+	"menu-channel": "채널",
+	"menu-channel-status": "상태 변경",
+	"menu-channel-list": "채널 사용자 보이기/숨기기",
 	"menu-program": "프로그램",
 	"menu-program-info": "프로그램 정보",
 	"menu-program-blog": "개발자 블로그",
@@ -13,13 +15,19 @@
 	"menu-program-dev": "개발자 도구",
 	"menu-program-exit": "종료",
 
+	"menu-actli-whisper": "귓속말",
+
 	"OK": "확인",
+	"whisper": "귓속말",
+	"command": "명령어",
 
 	"file-image": "이미지 파일",
 	"loading": "불러오는 중",
 	"login-ok": "로그인에 성공했습니다.",
 	"login-no": "로그인에 실패했습니다.",
 	"logout": "로그아웃에 성공했습니다. 프로그램을 재시작해 주세요.",
+	"ce-ok": "이메일 인증에 성공했습니다.",
+	"on-whisper": "{1} 님의 귓속말",
 	"sure-quit": "이 방({1})에서 퇴장합니까?",
 
 	"diag-login": "로그인",
@@ -30,6 +38,15 @@
 	"diag-upload": "파일 전송",
 	"diag-upload-sure": "다음 파일을 전송합니다.",
 	"diag-upload-auto": "다음부터 묻지 않고 알아서 전송하기",
+	"diag-ce": "채널 이용을 위한 이메일 인증",
+	"diag-ce-target": "{1}<br>위 이메일로 인증 번호를 보냈습니다. 인증 번호와 함께 채널 접속에 사용할 암호를 설정해 주세요. 이 암호는 4자 이상 20자 이하여야 하며 별도로 암호화되지 않습니다.",
+	"diag-ce-serial": "인증 번호",
+	"diag-ce-pass": "채널 암호",
+	"diag-status": "내 상태 설정",
+	"diag-status-tip": "채널 참여자들에게 내 상태를 알립니다.",
+	"diag-status-list": "상태",
+	"diag-status-online": "온라인",
+	"diag-status-afk": "자리 비움",
 
 	"act-or-title": "공개 채팅",
 	"act-or-cafe-list": "< 카페 목록 >",
@@ -48,10 +65,15 @@
 	"act-mr-save": "파일로 저장",
 	"act-mr-send": "FA{send}",
 	"act-mr-image": "FA{image}",
+	"act-mr-chan-no": "FA{warning} 채널에 접속하려면 이메일 인증을 해 주세요.",
+	"act-mr-chan-go-email": "이메일 인증하기",
 
 	"notice-join": "{1} ({2}) 님이 입장했습니다.",
 	"notice-leave": "{1} ({2}) 님이 퇴장했습니다.",
 
 	"error-100": "이미 참여한 방입니다.",
-	"error-101": "전송하려는 내용의 길이가 500자를 초과합니다. 계속합니까?"
+	"error-101": "전송하려는 내용의 길이가 500자를 초과합니다. 계속합니까?",
+	"error-102": "채널 암호는 4자 이상 20자 이하여야 합니다.",
+	"error-110": "인증 번호가 틀렸습니다.",
+	"error-111": "채널 암호가 틀렸습니다."
 }

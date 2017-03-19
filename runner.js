@@ -7,6 +7,8 @@ const CoJer = require("./lib/cojer.js");
 const SCRIPTS = {
 	'account-login': () => exports.send('dialog', "login"),
 	'account-logout': () => CoJer.requestLogout(exports),
+	'channel-status': () => exports.send('dialog', "status"),
+	'channel-list': () => exports.send('event', "chan-list"),
 	'program-info': () => {
 		exports.send('alert', [
 			`=== ${PKG.name} ===`,
@@ -37,6 +39,21 @@ exports.MAIN_MENU = [
 			{
 				label: L('menu-account-logout'),
 				click: () => exports.run("account-logout")
+			}
+		]
+	},
+	{
+		label: L('menu-channel'),
+		submenu: [
+			{
+				label: L('menu-channel-status'),
+				accelerator: "CmdOrCtrl+T",
+				click: () => exports.run("channel-status")
+			},
+			{
+				label: L('menu-channel-list'),
+				accelerator: "CmdOrCtrl+`",
+				click: () => exports.run("channel-list")
 			}
 		]
 	},

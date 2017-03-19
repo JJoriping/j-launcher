@@ -1,7 +1,7 @@
-const ACT_OPENED = "opened";
 let $stage;
 
 $(() => {
+	$data.localId = 0;
 	// 스테이지 등록
 	$stage = {
 		body: $("body"),
@@ -10,7 +10,10 @@ $(() => {
 			loginOK: $("#diag-login-ok"),
 			loginOut: $("#diag-login-output"),
 			uploadImg: $("#diag-upload-img"),
-			uploadOK: $("#diag-upload-ok")
+			uploadOK: $("#diag-upload-ok"),
+			ceOK: $("#diag-ce-ok"),
+			statusList: $("#diag-status-list"),
+			statusOK: $("#diag-status-ok")
 		},
 		actTab: $("#act-tab"),
 		acts: $("#activities")
@@ -57,6 +60,36 @@ $(() => {
 		sendMessage('image', Activity.current.room, $data._uploading);
 		delete $data._uploading;
 	});
+	// 채널 이메일 대화 상자
+	$stage.diag.ceOK.on('click', e => {
+		let pw = $("#diag-ce-pass").val();
+
+		if(pw.length < 4 || pw.length > 20) return error(102);
+		$stage.diag.ceOK.prop('disabled', true);
+		$("#diag-ce-output").empty();
+		$.post(`http://${CHANNEL_HOST}/ncc/set`, {
+			key: $("#diag-ce-serial").val(),
+			id: $data.myInfo.profile.id,
+			pw: pw,
+			nickname: $data.myInfo.profile.nickname
+		}, res => {
+			$stage.diag.ceOK.prop('disabled', false);
+			if(res.error) $("#diag-ce-output").html(L(`error-${res.error}`));
+			else{
+				notify(L('ce-ok'));
+				setOpt('channel-pw', pw);
+				$dialog('ce').hide();
+				location.reload();
+			}
+		});
+	});
+	// 상태 대화 상자
+	$stage.diag.statusOK.on('click', e => {
+		Channel.send('status', {
+			status: $stage.diag.statusList.val()
+		});
+		$dialog('status').hide();
+	});
 	// 특수 액티비티 등록
 	$data.acts = {};
 	$data.currentAct = ACT_OPENED;
@@ -87,6 +120,7 @@ ipc.on('event', (ev, type, data) => {
 			notify(L('login-ok'));
 			$dialog('login').hide();
 			renderMyCafes();
+			if(OPT['channel-pw']) Channel.init(data.profile.id, OPT['channel-pw']);
 			ipc.send('cojer', 'MyRoomList');
 			break;
 		case 'login-no':
@@ -118,6 +152,16 @@ ipc.on('event', (ev, type, data) => {
 			break;
 		case 'prev-chat':
 			data.reverse().forEach(v => processMessage(v, true));
+			break;
+		case 'chan-list':
+			$stage.acts.toggleClass("channel-list-collapsed");
+			break;
+		case 'whisper':
+			Channel.send('whisper', {
+				rId: Activity.current.id,
+				target: data.target,
+				data: data.data
+			});
 			break;
 		case 'join':
 			renderMyRooms([ data ], true);
@@ -155,6 +199,7 @@ function createActivity(id, title, $obj){
  */
 function removeActivity(id){
 	$(`#act-${id}`).remove();
+	if($data.acts[id].channel) $data.acts[id].channel.close();
 	delete $data.acts[id];
 	if($data.currentAct == id) setActivity(ACT_OPENED);
 
@@ -171,7 +216,7 @@ function setActivity(id){
 	$data.currentAct = id;
 	localStorage.setItem('recentAct', id);
 	$(".act-talk-last").remove();
-	if(Activity.current.nCount > 0){
+	if(Activity.current && Activity.current.nCount > 0){
 		$(`#actt-${id}-${Activity.current.nStartId}`).before(`<div class="act-talk act-talk-last"/>`);
 		Activity.current.nCount = 0;
 	}
@@ -308,8 +353,8 @@ function renderMyRooms(list, noPrev){
 				<button class="act-menu-save">${L('act-mr-save')}</button>
 			</div>
 			<div class="act-board"></div>
+			<div class="act-list act-list-closed"></div>
 			<div class="act-ghost act-talk"></div>
-			<div class="act-list"></div>
 			<div class="act-me">
 				<textarea class="act-chat"></textarea>
 				<button class="act-send">${L('act-mr-send')}</button>
@@ -325,6 +370,7 @@ function renderMyRooms(list, noPrev){
  * 
  * @param {*} data 받은 정보
  * @param {boolean} prev 이전 채팅 여부. true인 경우 가장 위에 배치된다.
+ * @returns {*} 새로 생성된 채팅 jQuery 객체
  */
 function processMessage(data, prev){
 	let rId = data.room.id.replace(":", "-");
@@ -398,13 +444,32 @@ function processMessage(data, prev){
 		return `
 			<div class="actt-user ellipse" title="${user.nickname} (${user.id})">
 				<div class="actt-user-image" style="background-image: url(${user.image});"/>
-				${data.user.nickname}
+				${user.nickname}
 			</div>
 		`;
 	}
 	function cNotice(msg){
 		return `<div class="actt-notice">${msg}</div>`;
 	}
+	return $talk;
+}
+/**
+ * 채널로부터의 귓속말을 처리한다.
+ * 
+ * @param {*} data 
+ */
+function processWhisper(data){
+	let $talk = processMessage({
+		id: "whisper-${++$data.localId}",
+		room: { id: data.rId },
+		user: data.from,
+		type: "text",
+		message: `[${L('whisper')}] ${data.data}`,
+		time: Date.now()
+	});
+
+	$talk.addClass("act-talk-whisper");
+	if(!Remote.getCurrentWindow().isFocused()) notify(L('on-whisper', data.from.nickname), data.data);
 }
 /**
  * 불러온 텍스트 정보를 처리한다.
@@ -443,7 +508,24 @@ function processImage(img, source, downScroll){
 function sendMessage(type, room, data){
 	if(!data) return;
 
-	ipc.send('cojer', 'Send', {
+	if(type == "text" && data[0] == '/'){
+		let ci = data.indexOf(' ');
+		let form = {
+			type: data.slice(1, ci),
+			room: room,
+			raw: data,
+			data: data.slice(ci + 1)
+		};
+		processMessage({
+			id: "command-${++$data.localId}",
+			room: form.room,
+			user: $data.myInfo.profile,
+			type: "text",
+			message: `[${L('command')}] ${form.raw}`,
+			time: Date.now()
+		}).addClass("act-talk-command");
+		ipc.send('cojer', 'Command', form);
+	}else ipc.send('cojer', 'Send', {
 		type: type,
 		room: room,
 		data: data

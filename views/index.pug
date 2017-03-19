@@ -30,6 +30,30 @@ block Jungle
 			label(for='diag-upload-auto', style="width: 400px;")= L('diag-upload-auto')
 		div.diag-bar.diag-tail
 			button#diag-upload-ok= L('OK')
+	+Dialog('ce', 300, 300)
+		div.diag-bar
+			label#diag-ce-target(style='width: 100%;')
+		div.diag-bar
+			label(for='diag-ce-serial')= L('diag-ce-serial')
+			input#diag-ce-serial(type="text", placeholder=L('diag-ce-serial'))
+		div.diag-bar
+			label(for='diag-ce-pass')= L('diag-ce-pass')
+			input#diag-ce-pass(type="text", placeholder=L('diag-ce-pass'))
+		div.diag-bar#diag-ce-output
+		div.diag-bar.diag-tail
+			button#diag-ce-ok= L('OK')
+	+Dialog('status', 300, 200)
+		div.diag-bar
+			label(style='width: 100%;')= L('diag-status-tip')
+		div.diag-bar
+			label(for='diag-status-list')= L('diag-status-list')
+			select#diag-status-list
+				option(value='online')= L('diag-status-online')
+				each v in locals.OPT['status-list']
+					option(value=v)= v
+				option(value='afk')= L('diag-status-afk')
+		div.diag-bar.diag-tail
+			button#diag-status-ok= L('OK')
 
 block Middle
 	div#act-tab

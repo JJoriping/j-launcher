@@ -43,7 +43,7 @@ ipc.on('log', (ev, msg) => {
 
 function setOpt(key, value){
 	OPT[key] = value;
-	ipc.send('opt', 'no-ask-upload', true);
+	ipc.send('opt', key, value);
 }
 function notify(title, msg){
 	new Notification(`${title} - ${L('title')}`, {

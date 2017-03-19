@@ -10,6 +10,7 @@ const {
 } = require('electron');
 const Pug = require('electron-pug')({ pretty: true }, {
 	version: PKG.version,
+	OPT: OPT,
 	L: Runner.L
 });
 
