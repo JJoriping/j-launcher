@@ -1,6 +1,7 @@
 const PKG = require("./package.json");
 const OPT = require("./settings.json");
 const Runner = require("./runner.js");
+const { readFile } = require('fs');
 const {
 	app: App,
 	BrowserWindow,

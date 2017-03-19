@@ -6,6 +6,7 @@ const LANG = require("./language.json");
 const CoJer = require("./lib/cojer.js");
 const SCRIPTS = {
 	'account-login': () => exports.send('dialog', "login"),
+	'account-logout': () => CoJer.requestLogout(exports),
 	'program-info': () => {
 		exports.send('alert', [
 			`=== ${PKG.name} ===`,
@@ -32,6 +33,10 @@ exports.MAIN_MENU = [
 				label: L('menu-account-login'),
 				accelerator: "CmdOrCtrl+L",
 				click: () => exports.run("account-login")
+			},
+			{
+				label: L('menu-account-logout'),
+				click: () => exports.run("account-logout")
 			}
 		]
 	},
@@ -80,6 +85,9 @@ CoJer.log = msg => {
 	exports.send('log', msg);
 };
 
+ipcMain.on('opt', (e, key, value) => {
+	CoJer.setOpt(e.sender, key, value);
+});
 ipcMain.on('cojer', (e, type, opts) => {
 	let F = CoJer[`request${type}`];
 

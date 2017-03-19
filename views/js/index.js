@@ -1,19 +1,44 @@
-const OPT = require("../settings.json");
 const ACT_OPENED = "opened";
 let $stage;
 
 $(() => {
 	// 스테이지 등록
 	$stage = {
+		body: $("body"),
 		diag: {
 			loginCaptcha: $("#diag-login-captcha-box"),
 			loginOK: $("#diag-login-ok"),
-			loginOut: $("#diag-login-output")
+			loginOut: $("#diag-login-output"),
+			uploadImg: $("#diag-upload-img"),
+			uploadOK: $("#diag-upload-ok")
 		},
 		actTab: $("#act-tab"),
 		acts: $("#activities")
 	};
-	// 로그인 대화 상자에 대한 처리
+	// 탭 순서 불러오기
+	loadTabOrdinal();
+	// 창에 드롭하는 경우
+	document.body.addEventListener('dragenter', e => {
+		$data._dType = e.dataTransfer.items[0].kind;
+	});
+	document.body.addEventListener('dragover', e => {
+		$stage.body.addClass("dark-body");
+		if($data._dType != "string"){
+			e.preventDefault();
+			e.stopPropagation();
+		}
+	});
+	document.body.addEventListener('dragleave', e => {
+		$stage.body.removeClass("dark-body");
+	});
+	document.body.addEventListener('drop', e => {
+		$stage.body.removeClass("dark-body");
+		if(!Activity.current.onChatPaste(e)){
+			e.preventDefault();
+			e.stopPropagation();
+		}
+	});
+	// 로그인 대화 상자
 	$stage.diag.loginOK.on('click', e => {
 		$stage.diag.loginOK.prop('disabled', true);
 		$stage.diag.loginOut.css('color', "").html("");
@@ -24,6 +49,13 @@ $(() => {
 			captchaKey: $data._ckey,
 			auto: $("#diag-login-auto").is(':checked')
 		});
+	});
+	// 업로드 대화 상자
+	$stage.diag.uploadOK.on('click', e => {
+		if($("#diag-upload-auto").is(':checked')) setOpt('no-ask-upload', true);
+		$dialog('upload').hide();
+		sendMessage('image', Activity.current.room, $data._uploading);
+		delete $data._uploading;
 	});
 	// 특수 액티비티 등록
 	$data.acts = {};
@@ -43,8 +75,9 @@ $(() => {
 			cafe: $data.currentCafe
 		});
 	});
-	// 자동 로그인 처리
+	// 자동 로그인 / 세션 처리
 	if(OPT.auto) ipc.send('cojer', 'Login', OPT.auto);
+	else ipc.send('cojer', 'CheckAuth');
 });
 ipc.on('event', (ev, type, data) => {
 	switch(type){
@@ -65,6 +98,9 @@ ipc.on('event', (ev, type, data) => {
 				$stage.diag.loginCaptcha.show();
 			}
 			break;
+		case 'logout':
+			alert(L('logout'));
+			break;
 		case 'open-rooms':
 			renderOpenRooms(data);
 			break;
@@ -84,11 +120,13 @@ ipc.on('event', (ev, type, data) => {
 			data.reverse().forEach(v => processMessage(v, true));
 			break;
 		case 'join':
-			renderMyRooms([ data ]);
+			renderMyRooms([ data ], true);
 			setActivity(data.id.replace(":", "-"));
+			saveTabOrdinal();
 			break;
 		case 'quit':
 			removeActivity(data.id.replace(":", "-"));
+			saveTabOrdinal();
 			break;
 	}
 });
@@ -102,8 +140,10 @@ ipc.on('event', (ev, type, data) => {
  * @returns {Activity} 생성된 액티비티
  */
 function createActivity(id, title, $obj){
+	let ord = $data.tabOrdinal[`at-item-${id}`] || Object.keys($data.acts).length;
+
 	$stage.acts.append($obj = $(`<div id="act-${id}" class="activity">`).html($obj));
-	$data.acts[id] = new Activity(id, title, Object.keys($data.acts).length, $obj);
+	$data.acts[id] = new Activity(id, title, ord, $obj);
 
 	renderActTab();
 	return $data.acts[id];
@@ -154,15 +194,61 @@ function setActivity(id){
 function renderActTab(){
 	$stage.actTab.empty();
 	Object.keys($data.acts).map(v => $data.acts[v]).sort((a, b) => a.ord - b.ord).forEach(v => {
-		$stage.actTab.append(`
-			<div id="at-item-${v.id}" class="at-item ellipse${(v.room && !v.room.isPublic) ? " at-item-locked" : ""}" onclick="setActivity('${v.id}');">
+		$stage.actTab.append($(`
+			<div id="at-item-${v.id}" class="at-item ellipse${(v.room && !v.room.isPublic) ? " at-item-locked" : ""}" draggable="true" onclick="setActivity('${v.id}');">
 				<label class="ati-count" style="display: none;"></label>
 				<i class="fa fa-lock ati-locked"/>
 				<label>${v.title}</label>
 			</div>
-		`);
+		`.trim())
+			.on('dragstart', onTabDragStart)
+			.on('dragenter', onTabDragEnter)
+			.on('dragend', onTabDragEnd)
+		);
 	});
+	function onTabDragStart(e){
+		$data._movingTab = $(e.currentTarget);
+		$stage.actTab.on('dragenter', onTabDragEnter);
+
+		e.originalEvent.dataTransfer.setData('text/plain', e.currentTarget.id);
+	}
+	function onTabDragEnter(e){
+		let $t = $(e.originalEvent.target);
+		
+		if($t.attr('id') == "act-tab"){
+			$t.children(":last-child").after($data._movingTab);
+		}else{
+			$t.before($data._movingTab);
+		}
+	}
+	function onTabDragEnd(e){
+		saveTabOrdinal();
+		delete $data._movingTab;
+		$stage.actTab.off('dragenter', onTabDragEnter);
+	}
 	$(`#at-item-${$data.currentAct}`).addClass("at-current");
+}
+/**
+ * 탭 순서 정보를 저장한다.
+ */
+function saveTabOrdinal(){
+	let ord = [];
+	
+	$stage.actTab.children().each((i, o) => ord.push(o.id));
+	localStorage.setItem('tab-ordinal', ord.join(','));
+	loadTabOrdinal();
+}
+/**
+ * 탭 순서 정보를 불러온다.
+ */
+function loadTabOrdinal(){
+	let ord = localStorage.getItem('tab-ordinal');
+
+	if(ord) ord = ord.split(',');
+	else ord = [];
+
+	$data.tabOrdinal = {};
+	ord.map((v, i) => $data.tabOrdinal[v] = i);
 }
 /**
  * 카페 목록을 갱신한다.
@@ -205,8 +291,9 @@ function renderOpenRooms(list){
  * 내 채팅방들을 각각 액티비티로 취급하여 생성한다. 이 함수는 중복 검사를 하지 않는다.
  * 
  * @param {any[]} list 내 채팅방 목록
+ * @param {boolean} prevAble true인 경우 자동으로 이전 채팅 기록을 불러오지 않는다.
  */
-function renderMyRooms(list){
+function renderMyRooms(list, noPrev){
 	list.forEach(v => {
 		let act = createActivity(v.id.replace(":", "-"), v.name, `
 			<div class="act-menu">
@@ -218,6 +305,7 @@ function renderMyRooms(list){
 				</div>
 				<button class="act-menu-quit">${L('act-mr-quit')}</button>
 				<button class="act-menu-prev">${L('act-mr-prev-chat')}</button>
+				<button class="act-menu-save">${L('act-mr-save')}</button>
 			</div>
 			<div class="act-board"></div>
 			<div class="act-ghost act-talk"></div>
@@ -225,8 +313,10 @@ function renderMyRooms(list){
 			<div class="act-me">
 				<textarea class="act-chat"></textarea>
 				<button class="act-send">${L('act-mr-send')}</button>
+				<button class="act-image">${L('act-mr-image')}</button>
 			</div>
 		`);
+		if(noPrev) v._prevChat = 0;
 		act.setRoom(v);
 	});
 }
@@ -240,7 +330,12 @@ function processMessage(data, prev){
 	let rId = data.room.id.replace(":", "-");
 	let act = $data.acts[rId];
 	if(!act){
-		renderMyRooms([ data.room ]);
+		// 일대일 채팅이 생겼을 때 방 정보가 나타나지 않는 경우에 대한 처리
+		if(!data.room.name){
+			data.room.name = data.user.nickname;
+			data.room.userCount = 2;
+		}
+		renderMyRooms([ data.room ], true);
 		act = $data.acts[rId];
 	}
 	let $board = act.$stage.board, board = $board.get(0);
@@ -259,7 +354,7 @@ function processMessage(data, prev){
 		case "image": content = `
 			${cUser(data.user)}
 			<div class="actt-body">
-				<img src="${data.thumb}" onload="processImage(this, '${data.image}', ${isBottom});"/>
+				<img src="${data.thumb || (data.image + "?type=w128")}" onload="processImage(this, '${data.image}', ${isBottom});"/>
 			</div>
 			`;
 			break;
@@ -279,7 +374,7 @@ function processMessage(data, prev){
 		default:
 			console.log(data);
 	}
-	$board[prev ? 'prepend' : 'append']($talk = $(`<div id="actt-${rId}-${data.id}" class="act-talk${isMe ? " act-my-talk" : ""}">
+	$board[prev ? 'prepend' : 'append']($talk = $(`<div id="actt-${rId}-${data.id}" class="act-talk${isMe ? " act-my-talk" : ""} act-talk-${data.user.id}" onclick="traceMessage('${data.user.id}');">
 		${content}
 		<div class="actt-stamp">${new Date(data.time).toLocaleTimeString()}</div>
 	</div>`));
@@ -288,10 +383,15 @@ function processMessage(data, prev){
 		$(`#at-item-${rId}`).addClass("at-notify")
 			.children(".ati-count").show().html(++act.nCount);
 	}
+	if($data._traced == data.user.id) $talk.addClass("act-talk-traced");
 	if(isBottom || isMe){
 		board.scrollTop = board.scrollHeight - board.clientHeight;
-	}else{
+	}else if(!prev){
 		act.$stage.ghost.show().html($talk.html());
+	}
+	if(!prev && board.children.length > OPT['max-chat']){
+		act.room._prevChat++;
+		board.removeChild(board.children[0]);
 	}
 
 	function cUser(user){
@@ -305,7 +405,6 @@ function processMessage(data, prev){
 	function cNotice(msg){
 		return `<div class="actt-notice">${msg}</div>`;
 	}
-	console.log(data);
 }
 /**
  * 불러온 텍스트 정보를 처리한다.
@@ -315,11 +414,11 @@ function processMessage(data, prev){
  */
 function processText(text){
 	const TABLE = {
-		'<': "&lt;", '>': "&gt;", '&': "&amp;"
+		'<': "&lt;", '>': "&gt;", '&': "&amp;", '\n': "<br>"
 	};
-	text = text.replace(/<|>|&/g, v => TABLE[v]);
-
-	return text;
+	return text
+		.replace(/<|>|&|\n/g, v => TABLE[v])
+		.replace(/(https?:\/\/.+?\..+?)(\s|<br>|$)/gi, (v, p1, p2) => `<a href="#" onclick="shell.openExternal('${p1}');">${p1}</a>${p2}`);
 }
 /**
  * 불러온 이미지 정보를 처리한다.
@@ -342,11 +441,26 @@ function processImage(img, source, downScroll){
  * @param {*} data 보낼 정보
  */
 function sendMessage(type, room, data){
+	if(!data) return;
+
 	ipc.send('cojer', 'Send', {
 		type: type,
 		room: room,
 		data: data
 	});
+}
+/**
+ * 주어진 아이디를 가진 사용자의 채팅을 강조 표시한다.
+ * 
+ * @param {string} id 사용자 아이디
+ */
+function traceMessage(id){
+	let already = $data._traced == id;
+
+	$data._traced = id;
+	$(".act-talk-traced").removeClass("act-talk-traced");
+	if(already) delete $data._traced;
+	else $(`.act-talk-${id}`).addClass("act-talk-traced");
 }
 /**
  * 이미지에 대한 팝업을 띄운다.

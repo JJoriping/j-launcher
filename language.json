@@ -3,6 +3,7 @@
 
 	"menu-account": "계정",
 	"menu-account-login": "로그인",
+	"menu-account-logout": "로그아웃",
 
 	"menu-program": "프로그램",
 	"menu-program-info": "프로그램 정보",
@@ -14,9 +15,11 @@
 
 	"OK": "확인",
 
+	"file-image": "이미지 파일",
 	"loading": "불러오는 중",
 	"login-ok": "로그인에 성공했습니다.",
 	"login-no": "로그인에 실패했습니다.",
+	"logout": "로그아웃에 성공했습니다. 프로그램을 재시작해 주세요.",
 	"sure-quit": "이 방({1})에서 퇴장합니까?",
 
 	"diag-login": "로그인",
@@ -24,10 +27,13 @@
 	"diag-login-pw": "암호",
 	"diag-login-captcha": "자동 입력 방지",
 	"diag-login-auto": "자동 로그인",
+	"diag-upload": "파일 전송",
+	"diag-upload-sure": "다음 파일을 전송합니다.",
+	"diag-upload-auto": "다음부터 묻지 않고 알아서 전송하기",
 
 	"act-or-title": "공개 채팅",
 	"act-or-cafe-list": "< 카페 목록 >",
-	"act-or-cafe-select": "(카페를 선택하십시오.)",
+	"act-or-cafe-select": "(카페를 선택하세요)",
 	"act-or-room-count": "총 {1}개의 방",
 	"act-or-room-time-sec": "1분 이내",
 	"act-or-room-time-min": "{1}분 전",
@@ -39,10 +45,13 @@
 	"act-mr-private": "FA{lock} 비공개",
 	"act-mr-quit": "나가기",
 	"act-mr-prev-chat": "이전 대화 보기",
-	"act-mr-send": "전송",
+	"act-mr-save": "파일로 저장",
+	"act-mr-send": "FA{send}",
+	"act-mr-image": "FA{image}",
 
 	"notice-join": "{1} ({2}) 님이 입장했습니다.",
 	"notice-leave": "{1} ({2}) 님이 퇴장했습니다.",
 
-	"error-100": "이미 참여한 방입니다."
+	"error-100": "이미 참여한 방입니다.",
+	"error-101": "전송하려는 내용의 길이가 500자를 초과합니다. 계속합니까?"
 }

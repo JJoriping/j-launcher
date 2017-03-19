@@ -13,7 +13,7 @@ block Jungle
 			label= L('diag-login-pw')
 			input#diag-login-pw(type="password", placeholder=L('diag-login-pw'))
 		div.diag-bar#diag-login-captcha-box(style='display: none;')
-			label(For='diag-login-captcha')= L('diag-login-captcha')
+			label(for='diag-login-captcha')= L('diag-login-captcha')
 			input#diag-login-captcha(type="text", placeholder=L('diag-login-captcha'))
 		div.diag-bar
 			label(for='diag-login-auto')= L('diag-login-auto')
@@ -21,6 +21,15 @@ block Jungle
 		div.diag-bar#diag-login-output
 		div.diag-bar.diag-tail
 			button#diag-login-ok= L('OK')
+	+Dialog('upload', 600, 380)
+		div.diag-bar
+			label(style='width: 100%; text-align: center;')= L('diag-upload-sure')
+			img#diag-upload-img(style='display: block; width: auto; height: 290px; padding-top: 5px; margin: auto;')
+		div.diag-bar
+			input#diag-upload-auto(type="checkbox", style="float: left;")
+			label(for='diag-upload-auto', style="width: 400px;")= L('diag-upload-auto')
+		div.diag-bar.diag-tail
+			button#diag-upload-ok= L('OK')
 
 block Middle
 	div#act-tab

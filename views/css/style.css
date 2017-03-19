@@ -3,6 +3,7 @@ body{
 	font-family: NanumBarunGothic;
 	font-size: 13px;
 }
+	.dark-body{ opacity: 0.7; }
 button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit; }
 	button:focus, input:focus, select:focus, textarea:focus{ outline: 1px solid skyblue; }
 .ellipse{
@@ -52,6 +53,7 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 	position: absolute;
 	width: 100%;
 	height: 30px;
+	overflow: auto;
 	background-color: #333;
 }
 	.at-item{
@@ -62,6 +64,7 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 		color: #EEE;
 		background-color: #444;
 	}
+		.at-item *{ pointer-events: none; }
 		.at-item:hover{ background-color: #555; }
 		#at-item-opened{ width: initial; color: greenyellow; }
 		.at-current{
@@ -99,7 +102,7 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 		background-color: #EEE;
 	}
 		.act-menu-title{
-			width: calc(100% - 204px);
+			width: calc(100% - 304px);
 			height: 15px;
 			margin: 2px;
 		}
@@ -126,6 +129,7 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 				.actt-user-image{ width: 15px; height: 15px; margin: 0px 2px; background-size: 100% 100%; }
 			.actt-body{ width: calc(100% - 120px); overflow-wrap: break-word; }
 				.actt-body::before{ content: ":"; margin: 0px 3px 0px -3px; color: lightgray; }
+				.actt-body>img{ vertical-align: top; }
 			.actt-notice{ width: 100%; text-align: center; font-weight: bold; }
 			.actt-stamp{
 				display: none;
@@ -137,6 +141,7 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 				background-color: whitesmoke;
 			}
 			.act-talk:hover{ background-color: whitesmoke; }
+			.act-talk-traced{ font-weight: bold; background-color: whitesmoke; }
 			.act-talk:hover>.actt-stamp{ display: block; }
 	.act-ghost{
 		display: none;
@@ -150,7 +155,8 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 		.act-ghost>.actt-stamp{ background-color: initial; }
 	.act-me{ width: 100%; height: 99px; border-top: 1px solid lightgray; }
 		.act-chat{ float: left; padding: 5px; width: calc(100% - 70px); height: calc(100% - 10px); resize: none; background-color: whitesmoke; }
-		.act-send{ float: left; width: 60px; height: 100%; }
+		.act-me>button{ float: left; width: 60px; height: 50%; border-bottom: 1px solid lightgray; font-size: 20px; }
+			.act-me>button:hover{ background-color: #EEE; }
 /* 특수 액티비티 - 공개 채팅방(OpenRoom) */
 #act-or-cafe-list{
 	width: 100%;

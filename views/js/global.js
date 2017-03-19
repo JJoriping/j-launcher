@@ -1,7 +1,10 @@
 const {
+	clipboard: Clipboard,
 	ipcRenderer: ipc,
+	remote: Remote,
 	shell
 } = require("electron");
+const OPT = require("../settings.json");
 
 let $data = {};
 
@@ -29,13 +32,7 @@ ipc.on('alert', (ev, msg) => {
 	alert(msg);
 });
 ipc.on('dialog', (ev, type) => {
-	let $diag = $dialog(type);
-
-	$diag.toggle();
-	$diag.css({
-		'left': (window.innerWidth - $diag.width()) * 0.5,
-		'top': (window.innerHeight - $diag.height()) * 0.5
-	});
+	return $dialog(type, true).toggle();
 });
 ipc.on('external', (ev, href) => {
 	shell.openExternal(href);
@@ -44,14 +41,24 @@ ipc.on('log', (ev, msg) => {
 	console.log(msg);
 });
 
+function setOpt(key, value){
+	OPT[key] = value;
+	ipc.send('opt', 'no-ask-upload', true);
+}
 function notify(title, msg){
 	new Notification(`${title} - ${L('title')}`, {
 		icon: "img/logo.ico",
 		body: msg
 	});
 }
-function $dialog(type){
-	return $(`#diag-${type}`);
+function $dialog(type, toCenter){
+	let $R = $(`#diag-${type}`);
+
+	if(toCenter) $R.css({
+		'left': (window.innerWidth - $R.width()) * 0.5,
+		'top': (window.innerHeight - $R.height()) * 0.5
+	});
+	return $R;
 }
 function onDiagMouseMove(e){
 	let pos = $data.$drag.position();
