@@ -1,6 +1,6 @@
 body{
 	margin: 0px;
-	font-family: NanumBarunGothic;
+	font-family: Malgun Gothic;
 	font-size: 13px;
 }
 	.dark-body{ opacity: 0.7; }
@@ -47,7 +47,9 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 			}
 			.diag-bar>input[type="checkbox"]{ width: initial; }
 		.diag-tail{ position: absolute; bottom: 1px; width: calc(100% - 4px); }
-			.diag-tail>button{ float: right; margin: 0px 1px; width: 80px; }
+			.diag-tail>button{ float: right; padding: 2px 0px; margin: 0px 1px; width: 80px; }
+			.ok-button{ color: royalblue; background-color: lightskyblue; }
+			.diag-tail>button:disabled{ color: gray; background-color: #AAA; }
 /* 탭 */
 #act-tab{
 	position: absolute;
@@ -59,6 +61,7 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 	.at-item{
 		float: left;
 		width: 120px;
+		height: 15px;
 		padding: 5px;
 		margin: 4px 1px 0px 0px;
 		color: #EEE;
@@ -90,6 +93,7 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 #activities{ position: absolute; top: 30px; width: 100%; height: calc(100% - 30px); }
 	.channel-list-collapsed .act-board{ width: 100% !important; }
 	.channel-list-collapsed .act-list{ display: none; }
+	.channel-list-collapsed .act-ghost{ width: 100% !important; }
 .activity{
 	display: none;
 	float: left;
@@ -104,7 +108,7 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 		background-color: #EEE;
 	}
 		.act-menu-title{
-			width: calc(100% - 304px);
+			width: calc(100% - 94px);
 			height: 15px;
 			margin: 2px;
 		}
@@ -112,9 +116,10 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 			.actm-title-cafe, .actm-title-attr{ color: #555; }
 		.act-menu>button{
 			float: right;
-			width: 99px;
+			width: 29px;
 			height: 100%;
-			margin-left: 1px;
+			padding-top: 1px;
+			color: #444;
 		}
 			.act-menu>button:disabled{ color: gray; }
 			.act-menu>button:hover{ background-color: whitesmoke; }
@@ -126,8 +131,8 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 	}
 		.act-talk{ width: 100%; padding: 3px 0px; }
 			.act-my-talk{ background-color: #EEE; }
-				.act-talk-whisper{ color: mediumblue; }
-				.act-talk-command{ color: darkgreen; }
+				.act-talk-cmd-send{ color: darkgreen; }
+				.act-talk-cmd-receive{ color: mediumblue; }
 			.act-talk-last{ padding: 0px; border-top: 1px dashed gray; margin-top: 1px; }
 			.actt-user{ width: 120px; }
 				.actt-user-image{ width: 15px; height: 15px; margin: 0px 2px; background-size: 100% 100%; }
@@ -137,8 +142,8 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 			.actt-notice{ width: 100%; text-align: center; font-weight: bold; }
 			.actt-stamp{
 				display: none;
-				width: 70px;
-				margin-left: -70px;
+				width: 80px;
+				margin-left: -80px;
 				font-size: 11px;
 				color: gray;
 				text-align: right;
@@ -149,12 +154,13 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 			.act-talk:hover>.actt-stamp{ display: block; }
 	.act-ghost{
 		display: none;
+		position: relative;
 		margin-top: -20px;
 		width: calc(100% - 240px);
 		height: 14px;
+		overflow: hidden;
 		color: #EEE;
 		background-color: rgba(0, 0, 0, 0.7) !important;
-		z-index: 1;
 	}
 		.act-ghost>.actt-stamp{ background-color: initial; }
 	.act-list{

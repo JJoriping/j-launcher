@@ -1,6 +1,3 @@
-const PKG = require("./package.json");
-const OPT = require("./settings.json");
-const Runner = require("./runner.js");
 const { readFile } = require('fs');
 const {
 	app: App,
@@ -8,6 +5,13 @@ const {
 	Menu,
 	Tray
 } = require('electron');
+global.APP_PATH = App.getAppPath();
+global.AUTH_FILE = global.APP_PATH + "/auth.json";
+global.CLIP_FILE = global.APP_PATH + "/clipboard.png";
+global.OPT_FILE = global.APP_PATH + "/settings.json";
+const OPT = require(global.OPT_FILE);
+const PKG = require("./package.json");
+const Runner = require("./runner.js");
 const Pug = require('electron-pug')({ pretty: true }, {
 	version: PKG.version,
 	OPT: OPT,

@@ -46,6 +46,7 @@ class Activity{
 				b.scrollTop = b.scrollHeight - b.clientHeight;
 				$(e.currentTarget).hide();
 			}),
+			menu: $obj.children(".act-menu"),
 			list: $obj.children(".act-list"),
 			chat: $obj.find(".act-chat")
 				.on('keydown', e => this.onChatKeyDown(e))
@@ -61,7 +62,7 @@ class Activity{
 			quit: $obj.find(".act-menu-quit")
 				.on('click', e => this.onMenuQuitClick(e))
 		};
-		if(id != ACT_OPENED) this.initChannel(this.$stage.list);
+		this.initChannel(this.$stage.list);
 	}
 	/**
 	 * 채널을 초기화한다.
@@ -69,13 +70,25 @@ class Activity{
 	 * @param {*} $list 채널 이용자 목록을 가리키는 jQuery 객체
 	 */
 	initChannel($list){
+		if(this.id == ACT_OPENED) return;
+
 		if(OPT['channel-pw']){
 			this.channel = new Channel(this.id, $list);
 		}else{
 			this.$stage.list.html(`
 				<label>${L('act-mr-chan-no')}</label><br/>
+				<button class="act-mr-chan-go-login" style="color: blue;">${L('act-mr-chan-go-login')}</button><br/>
 				<button class="act-mr-chan-go-email" style="color: blue;">${L('act-mr-chan-go-email')}</button>
 			`);
+			this.$stage.list.children(".act-mr-chan-go-login").on('click', e => {
+				prompt(L('act-mr-chan-go-login')).then(pw => {
+					if(!pw) return;
+					setOpt('channel-pw', pw);
+					
+					Channel.init($data.myInfo.profile.id, pw);
+					for(let i in $data.acts) $data.acts[i].initChannel($data.acts[i].$stage.list);
+				});
+			});
 			this.$stage.list.children(".act-mr-chan-go-email").on('click', e => {
 				$.post(`http://${CHANNEL_HOST}/ncc/email`, { id: $data.myInfo.profile.id }, res => {
 					if(res) $dialog('ce', true).show().find("#diag-ce-target").html(L('diag-ce-target', $data.myInfo.profile.id));
@@ -84,14 +97,21 @@ class Activity{
 		}
 	}
 	/**
-	 * 이 액티비티가 가지는 방 정보를 설정한다.
+	 * 이 액티비티가 가지는 방 정보를 설정하고 방 정보에 맞게 DOM 객체를 수정한다.
 	 * 
 	 * @param {*} room 방 정보
 	 */
 	setRoom(room){
 		this.room = room;
 		this.nCount = 0;
+
 		$(`#at-item-${this.id}`)[room.isPublic ? 'removeClass' : 'addClass']("at-item-locked");
+		this.$stage.menu.children(".act-menu-title").html(`
+			<label class="actm-title-name"><b>${room.name}</b></label><i/>
+			<label class="actm-title-user">${L('act-mr-user', room.userCount)}</label><i/>
+			<label class="actm-title-cafe">${room.cafe.name}</label><i/>
+			<label class="actm-title-attr">${room.isPublic ? L('act-mr-public') : L('act-mr-private')}</label>
+		`);
 	}
 	/**
 	 * 이 액티비티가 포함한 채팅 기록을 저장한다.
@@ -115,12 +135,12 @@ class Activity{
 	 * 이전 대화를 불러오도록 요청한다.
 	 */
 	requestPrevChat(){
-		let v = this.room._prevChat;
+		let v = this._prevChat;
 		
-		this.room._prevChat = Math.max(0, v - OPT['prev-per-req']);
+		this._prevChat = Math.max(0, v - OPT['prev-per-req']);
 		ipc.send('cojer', "PrevChat", {
 			room: this.room,
-			from: this.room._prevChat + 1,
+			from: this._prevChat + 1,
 			to: v
 		});
 	}
@@ -132,6 +152,7 @@ class Activity{
 			room: this.room
 		});
 	}
+
 	onChatKeyDown(e){
 		if(!e.shiftKey && e.keyCode == 13){
 			this.$stage.send.trigger('click');
@@ -208,6 +229,10 @@ class Channel{
 	static init(id, pw){
 		let socket = new WebSocket(`ws://${CHANNEL_HOST}:525/${id}@${pw}`);
 		
+		if(Channel.socket){
+			Channel._queue = [];
+			Channel.socket.close();
+		}
 		socket.onmessage = Channel.onMessage;
 		socket.onclose = Channel.onClose;
 	}
@@ -242,6 +267,9 @@ class Channel{
 		switch(data.type){
 			case 'welcome':
 				Channel.flushQueue(e.target);
+				break;
+			case 'error':
+				error(data.code, data.msg);
 				break;
 			case 'conn':
 				chan.list.push(data.user);

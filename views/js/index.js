@@ -18,6 +18,18 @@ $(() => {
 		actTab: $("#act-tab"),
 		acts: $("#activities")
 	};
+	// 전역 키 입력 핸들링
+	window.onkeydown = e => {
+		switch(e.keyCode){
+			case 27:
+				$(".dialog:visible:last").hide();
+				break;
+			case 13:
+				$(".dialog:visible .ok-button:last").trigger('click');
+				break;
+			default: return;
+		}
+	};
 	// 탭 순서 불러오기
 	loadTabOrdinal();
 	// 창에 드롭하는 경우
@@ -112,6 +124,34 @@ $(() => {
 	if(OPT.auto) ipc.send('cojer', 'Login', OPT.auto);
 	else ipc.send('cojer', 'CheckAuth');
 });
+ipc.on('command', (ev, type, data) => {
+	switch(type){
+		case 'clear':
+			clearBoard($data.currentAct);
+			command(L('cleared'), data.room.id, 'cmd-receive');
+			break;
+		case 'js':
+			try{ data._res = String(eval(data.data)); }
+			catch(e){ data._res = e.toString(); data._addr = `<label style='color: orange;'>${FA('warning', true)}</label>`; }
+			command(data._res, data.room.id, 'cmd-receive', data._addr);
+			break;
+	}
+});
+/**
+ * 명령어 사용에 대한 메시지를 출력한다.
+ * 
+ * @param {*} msg 메시지
+ * @param {string} rId 출력할 채팅방 식별자(기본값: 현재 채팅방)
+ * @param {string} group 채팅 jQuery 객체에 부가적으로 넣을 클래스의 접미어(기본값: 없음)
+ * @param {string} addPre 기본 접두어에서 부가적으로 넣을 접두어(기본값: 없음)
+ * @returns {*} 새로 생성된 채팅 jQuery 객체
+ */
+function command(msg, rId, group, addPre){
+	let $R = emulateMessage("command", msg, `<label style="color: gray;">${FA('gear')}</label>${addPre || ""}`);
+
+	if(group) $R.addClass(`act-talk-${group}`);
+	return $R;
+}
 ipc.on('event', (ev, type, data) => {
 	switch(type){
 		case 'login-ok':
@@ -155,6 +195,9 @@ ipc.on('event', (ev, type, data) => {
 			break;
 		case 'chan-list':
 			$stage.acts.toggleClass("channel-list-collapsed");
+			break;
+		case 'set-chat':
+			Activity.current.$stage.chat.val(data.data);
 			break;
 		case 'whisper':
 			Channel.send('whisper', {
@@ -226,8 +269,8 @@ function setActivity(id){
 	$(".activity").hide();
 	$(`#act-${id}`).show();
 	if(id != ACT_OPENED && (cr = Activity.current.room)){
-		if(!cr.hasOwnProperty('_prevChat') && cr.lastMsgSn > 0){
-			cr._prevChat = cr.lastMsgSn;
+		if(!Activity.current.hasOwnProperty('_prevChat') && cr.lastMsgSn > 0){
+			Activity.current._prevChat = cr.lastMsgSn;
 			Activity.current.requestPrevChat();
 		}
 	}
@@ -342,15 +385,10 @@ function renderMyRooms(list, noPrev){
 	list.forEach(v => {
 		let act = createActivity(v.id.replace(":", "-"), v.name, `
 			<div class="act-menu">
-				<div class="act-menu-title ellipse">
-					<label class="actm-title-name"><b>${v.name}</b></label><i/>
-					<label class="actm-title-user">${L('act-mr-user', v.userCount)}</label><i/>
-					<label class="actm-title-cafe">${v.cafe.name}</label><i/>
-					<label class="actm-title-attr">${v.isPublic ? L('act-mr-public') : L('act-mr-private')}</label>
-				</div>
-				<button class="act-menu-quit">${L('act-mr-quit')}</button>
-				<button class="act-menu-prev">${L('act-mr-prev-chat')}</button>
-				<button class="act-menu-save">${L('act-mr-save')}</button>
+				<div class="act-menu-title ellipse"></div>
+				<button class="act-menu-quit" title="${L('act-mr-quit')}">${FA('times')}</button>
+				<button class="act-menu-prev" title="${L('act-mr-prev')}">${FA('backward')}</button>
+				<button class="act-menu-save" title="${L('act-mr-save')}">${FA('download')}</button>
 			</div>
 			<div class="act-board"></div>
 			<div class="act-list act-list-closed"></div>
@@ -361,7 +399,7 @@ function renderMyRooms(list, noPrev){
 				<button class="act-image">${L('act-mr-image')}</button>
 			</div>
 		`);
-		if(noPrev) v._prevChat = 0;
+		if(noPrev) act._prevChat = 0;
 		act.setRoom(v);
 	});
 }
@@ -386,7 +424,7 @@ function processMessage(data, prev){
 	}
 	let $board = act.$stage.board, board = $board.get(0);
 	let isMe = data.user.id == $data.myInfo.profile.id;
-	let isBottom = board.scrollHeight - board.scrollTop === board.clientHeight;
+	let isBottom = board.scrollHeight - board.scrollTop - board.clientHeight < 1;
 	let $talk;
 	let content;
 
@@ -394,7 +432,7 @@ function processMessage(data, prev){
 	switch(data.type){
 		case "text": content = `
 			${cUser(data.user)}
-			<div class="actt-body">${processText(data.message)}</div>
+			<div class="actt-body">${data.preMessage || ''}${processText(data.message)}</div>
 			`;
 			break;
 		case "image": content = `
@@ -413,9 +451,11 @@ function processMessage(data, prev){
 			break;
 		case "join":
 			content = cNotice(L('notice-join', data.user.nickname, data.user.id));
+			act.setRoom(data.room);
 			break;
 		case "leave":
 			content = cNotice(L('notice-leave', data.user.nickname, data.user.id));
+			act.setRoom(data.room);
 			break;
 		default:
 			console.log(data);
@@ -436,7 +476,7 @@ function processMessage(data, prev){
 		act.$stage.ghost.show().html($talk.html());
 	}
 	if(!prev && board.children.length > OPT['max-chat']){
-		act.room._prevChat++;
+		act._prevChat++;
 		board.removeChild(board.children[0]);
 	}
 
@@ -454,21 +494,35 @@ function processMessage(data, prev){
 	return $talk;
 }
 /**
- * 채널로부터의 귓속말을 처리한다.
+ * 메시지 출력을 모방한다.
  * 
- * @param {*} data 
+ * @param {string} type 모방 유형 식별자
+ * @param {string} msg 메시지(기본값: "")
+ * @param {string} pre 전(pre)-메시지(기본값: "")
+ * @param {string} rId 채팅방 식별자(기본값: 현재 채팅방)
+ * @param {string} user 사용자 정보(기본값: 내 정보)
  */
-function processWhisper(data){
-	let $talk = processMessage({
-		id: "whisper-${++$data.localId}",
-		room: { id: data.rId },
-		user: data.from,
+function emulateMessage(type, msg, pre, rId, user){
+	return processMessage({
+		id: `${type}-${++$data.localId}`,
+		room: { id: rId || Activity.current.room.id },
+		user: user || $data.myInfo.profile,
 		type: "text",
-		message: `[${L('whisper')}] ${data.data}`,
+		preMessage: pre || "",
+		message: msg,
 		time: Date.now()
 	});
+}
+/**
+ * 채널로부터의 귓속말을 처리한다.
+ * 
+ * @param {*} data 귓속말 정보
+ */
+function processWhisper(data){
+	let pre = `<label style="color: orange;">${FA('lock')}</label> `;
+	let $talk = emulateMessage('whisper', data.data, pre, data.rId, data.from)
+		.addClass("act-talk-cmd-receive");
 
-	$talk.addClass("act-talk-whisper");
 	if(!Remote.getCurrentWindow().isFocused()) notify(L('on-whisper', data.from.nickname), data.data);
 }
 /**
@@ -501,7 +555,7 @@ function processImage(img, source, downScroll){
  * 메시지를 전송한다.
  * 전송하려는 메시지는 현재 DOM의 상황에 따라 자동적으로 결정된다.
  * 
- * @param {string} type 정보 유형(다음 중 하나: text)
+ * @param {string} type 정보 유형(다음 중 하나: text, image, sticker)
  * @param {*} room 보낼 채팅방 객체
  * @param {*} data 보낼 정보
  */
@@ -510,20 +564,16 @@ function sendMessage(type, room, data){
 
 	if(type == "text" && data[0] == '/'){
 		let ci = data.indexOf(' ');
-		let form = {
+		let form;
+		
+		if(ci == -1) ci = data.length;
+		form = {
 			type: data.slice(1, ci),
 			room: room,
 			raw: data,
 			data: data.slice(ci + 1)
 		};
-		processMessage({
-			id: "command-${++$data.localId}",
-			room: form.room,
-			user: $data.myInfo.profile,
-			type: "text",
-			message: `[${L('command')}] ${form.raw}`,
-			time: Date.now()
-		}).addClass("act-talk-command");
+		command(form.raw, form.room.id, 'cmd-send');
 		ipc.send('cojer', 'Command', form);
 	}else ipc.send('cojer', 'Send', {
 		type: type,
@@ -543,6 +593,18 @@ function traceMessage(id){
 	$(".act-talk-traced").removeClass("act-talk-traced");
 	if(already) delete $data._traced;
 	else $(`.act-talk-${id}`).addClass("act-talk-traced");
+}
+/**
+ * 해당 액티비티의 채팅 내용을 비운다.
+ * 
+ * @param {string} id 액티비티 식별자
+ */
+function clearBoard(id){
+	let act = $data.acts[id];
+	let lastId = act.$stage.board.children(".act-talk:last").attr('id').split('-')[3];
+	
+	Activity.current._prevChat = lastId;
+	Activity.current.$stage.board.empty();
 }
 /**
  * 이미지에 대한 팝업을 띄운다.

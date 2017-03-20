@@ -20,16 +20,16 @@ block Jungle
 			input#diag-login-auto(type="checkbox")
 		div.diag-bar#diag-login-output
 		div.diag-bar.diag-tail
-			button#diag-login-ok= L('OK')
+			button.ok-button#diag-login-ok= L('OK')
 	+Dialog('upload', 600, 380)
 		div.diag-bar
 			label(style='width: 100%; text-align: center;')= L('diag-upload-sure')
-			img#diag-upload-img(style='display: block; width: auto; height: 290px; padding-top: 5px; margin: auto;')
+			img#diag-upload-img(style='display: block; width: auto; height: 290px; max-width: 100%; padding-top: 5px; margin: auto;')
 		div.diag-bar
 			input#diag-upload-auto(type="checkbox", style="float: left;")
 			label(for='diag-upload-auto', style="width: 400px;")= L('diag-upload-auto')
 		div.diag-bar.diag-tail
-			button#diag-upload-ok= L('OK')
+			button.ok-button#diag-upload-ok= L('OK')
 	+Dialog('ce', 300, 300)
 		div.diag-bar
 			label#diag-ce-target(style='width: 100%;')
@@ -41,7 +41,7 @@ block Jungle
 			input#diag-ce-pass(type="text", placeholder=L('diag-ce-pass'))
 		div.diag-bar#diag-ce-output
 		div.diag-bar.diag-tail
-			button#diag-ce-ok= L('OK')
+			button.ok-button#diag-ce-ok= L('OK')
 	+Dialog('status', 300, 200)
 		div.diag-bar
 			label(style='width: 100%;')= L('diag-status-tip')
@@ -53,7 +53,7 @@ block Jungle
 					option(value=v)= v
 				option(value='afk')= L('diag-status-afk')
 		div.diag-bar.diag-tail
-			button#diag-status-ok= L('OK')
+			button.ok-button#diag-status-ok= L('OK')
 
 block Middle
 	div#act-tab

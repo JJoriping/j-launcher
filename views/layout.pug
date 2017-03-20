@@ -12,6 +12,7 @@ mixin Dialog(id, w, h)
 html
 	head
 		title= TITLE
+		meta(charset="UTF-8")
 		link(rel="stylesheet", href="./css/style.css")
 		link(rel="stylesheet", href="./css/fa.css")
 		script(type="text/javascript", src="./js/jquery.js")
@@ -21,6 +22,13 @@ html
 		block JS
 	body
 		div#Jungle
+			+Dialog('prompt', 300, 100)
+				div.diag-bar
+					label#diag-prompt-key(style="width: 100%;")
+				div.diag-bar
+					input#diag-prompt-value(type="text", style="width: 100%;")
+				div.diag-bar.diag-tail
+					button.ok-button#diag-prompt-ok= L('OK')
 			block Jungle
 		div#Middle
 			block Middle
