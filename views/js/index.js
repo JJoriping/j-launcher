@@ -1,4 +1,9 @@
+const OPT_KEYS = [
+	"auto", "channel-pw", "idle-time", "max-chat", "mute",
+	"no-ask-upload", "prev-per-req", "status-list", "viewer-resize"
+];
 let $stage;
+let $sound;
 
 $(() => {
 	$data.localId = 0;
@@ -18,18 +23,28 @@ $(() => {
 		actTab: $("#act-tab"),
 		acts: $("#activities")
 	};
-	// 전역 키 입력 핸들링
+	// 소리 등록
+	$sound = {};
+	[
+		'k', 'alarm'
+	].map(v => $sound[v] = new Audio(`media/${v}.mp3`));
+	// 전역 입력 핸들링 / 유휴 상태 검사
+	window.onmousemove = e => {
+		breakIdle();
+	};
 	window.onkeydown = e => {
-		switch(e.keyCode){
-			case 27:
-				$(".dialog:visible:last").hide();
-				break;
-			case 13:
+		breakIdle();
+		switch(e.key){
+			case 'Enter':
 				$(".dialog:visible .ok-button:last").trigger('click');
+				break;
+			case 'Escape':
+				$(".dialog:visible:last").hide();
 				break;
 			default: return;
 		}
 	};
+	setInterval(checkIdle, 1000);
 	// 탭 순서 불러오기
 	loadTabOrdinal();
 	// 창에 드롭하는 경우
@@ -62,7 +77,8 @@ $(() => {
 			pw: $("#diag-login-pw").val(),
 			captcha: $("#diag-login-captcha").val(),
 			captchaKey: $data._ckey,
-			auto: $("#diag-login-auto").is(':checked')
+			auto: $("#diag-login-auto").is(':checked'),
+			disposable: $("#diag-login-disposable").is(':checked')
 		});
 	});
 	// 업로드 대화 상자
@@ -97,9 +113,7 @@ $(() => {
 	});
 	// 상태 대화 상자
 	$stage.diag.statusOK.on('click', e => {
-		Channel.send('status', {
-			status: $stage.diag.statusList.val()
-		});
+		Channel.send('status', { status: $stage.diag.statusList.val() });
 		$dialog('status').hide();
 	});
 	// 특수 액티비티 등록
@@ -124,19 +138,51 @@ $(() => {
 	if(OPT.auto) ipc.send('cojer', 'Login', OPT.auto);
 	else ipc.send('cojer', 'CheckAuth');
 });
-ipc.on('command', (ev, type, data) => {
-	switch(type){
-		case 'clear':
-			clearBoard($data.currentAct);
-			command(L('cleared'), data.room.id, 'cmd-receive');
-			break;
-		case 'js':
-			try{ data._res = String(eval(data.data)); }
-			catch(e){ data._res = e.toString(); data._addr = `<label style='color: orange;'>${FA('warning', true)}</label>`; }
-			command(data._res, data.room.id, 'cmd-receive', data._addr);
-			break;
+/**
+ * 명령어를 총괄하는 상수 객체이다.
+ */
+const COMMANDS = {
+	'/': null,
+	call: data => {
+		Channel.callUser(data.target, data.room.id);
+	},
+	clear: data => {
+		clearBoard($data.currentAct);
+		command(L('cleared'), data.room.id, "cmd-receive");
+	},
+	help: data => {
+		let pre = Object.keys(COMMANDS).sort().map(v => {
+			let usage = L('cmdu-' + v).replace(/\((.+?)\)/g, (v, p1) => `<u>${p1}</u>`);
+
+			return `<li><b>/${v} ${usage}</b><br/>${L('cmdx-' + v)}</li>`;
+		}).join('');
+
+		command("", data.room.id, 'cmd-receive', `<ul>${pre}</ul>${L('cmdx')}`);
+	},
+	help_opt: data => {
+		let pre = OPT_KEYS.map(v => {
+			return `<li><b>${v}</b><br/>${L('optx-' + v)}</li>`
+		}).join('');
+
+		command("", Activity.current.room.id, 'cmd-receive', `<ul>${pre}</ul>${L('cmdx')}`);
+	},
+	js: data => {
+		try{ data._res = String(eval(data.data)); }
+		catch(e){ data._res = e.toString(); data._addr = `<label style='color: orange;'>${FA('warning', true)}</label>`; }
+		command(data._res, data.room.id, 'cmd-receive', data._addr);
+	},
+	set: data => {
+		setOpt(data.key, eval(data.value));
+	},
+	w: data => {
+		Channel.send('whisper', {
+			rId: Activity.current.id,
+			target: data.target,
+			data: data.data
+		});
 	}
-});
+};
+ipc.on('command', (ev, type, data) => COMMANDS[type](data));
 /**
  * 명령어 사용에 대한 메시지를 출력한다.
  * 
@@ -173,6 +219,8 @@ ipc.on('event', (ev, type, data) => {
 			}
 			break;
 		case 'logout':
+			setOpt('auto');
+			setOpt('channel-pw');
 			alert(L('logout'));
 			break;
 		case 'open-rooms':
@@ -185,7 +233,7 @@ ipc.on('event', (ev, type, data) => {
 			}
 			break;
 		case 'sess-msg':
-			processMessage(data);
+			processMessage(data, false, true);
 			break;
 		case 'sess-err':
 			console.error(data);
@@ -196,15 +244,14 @@ ipc.on('event', (ev, type, data) => {
 		case 'chan-list':
 			$stage.acts.toggleClass("channel-list-collapsed");
 			break;
+		case 'chat-image':
+			Activity.current.$stage.board.find("img:last").trigger('click');
+			break;
+		case 'error':
+			error(data.code, data.msg);
+			break;
 		case 'set-chat':
 			Activity.current.$stage.chat.val(data.data);
-			break;
-		case 'whisper':
-			Channel.send('whisper', {
-				rId: Activity.current.id,
-				target: data.target,
-				data: data.data
-			});
 			break;
 		case 'join':
 			renderMyRooms([ data ], true);
@@ -386,7 +433,7 @@ function renderMyRooms(list, noPrev){
 		let act = createActivity(v.id.replace(":", "-"), v.name, `
 			<div class="act-menu">
 				<div class="act-menu-title ellipse"></div>
-				<button class="act-menu-quit" title="${L('act-mr-quit')}">${FA('times')}</button>
+				<button class="act-menu-quit" title="${L('act-mr-quit')}">${FA('sign-out')}</button>
 				<button class="act-menu-prev" title="${L('act-mr-prev')}">${FA('backward')}</button>
 				<button class="act-menu-save" title="${L('act-mr-save')}">${FA('download')}</button>
 			</div>
@@ -404,13 +451,23 @@ function renderMyRooms(list, noPrev){
 	});
 }
 /**
+ * 주어진 DOM 객체의 스크롤이 가장 아래에 있는지 확인한다.
+ * 
+ * @param {HTMLElement} obj DOM 객체
+ * @returns {boolean} true인 경우 스크롤이 가장 아래에 있는 상태이다.
+ */
+function checkScrollBottom(obj){
+	return obj.scrollHeight - obj.scrollTop - obj.clientHeight < 1;
+}
+/**
  * 세션에서 받은 정보를 처리한다.
  * 
  * @param {*} data 받은 정보
  * @param {boolean} prev 이전 채팅 여부. true인 경우 가장 위에 배치된다.
+ * @param {boolean} saveId true인 경우 대상 액티비티의 최근 메시지 번호가 이 정보의 번호로 설정된다.
  * @returns {*} 새로 생성된 채팅 jQuery 객체
  */
-function processMessage(data, prev){
+function processMessage(data, prev, saveId){
 	let rId = data.room.id.replace(":", "-");
 	let act = $data.acts[rId];
 	if(!act){
@@ -424,7 +481,7 @@ function processMessage(data, prev){
 	}
 	let $board = act.$stage.board, board = $board.get(0);
 	let isMe = data.user.id == $data.myInfo.profile.id;
-	let isBottom = board.scrollHeight - board.scrollTop - board.clientHeight < 1;
+	let isBottom = checkScrollBottom(board);
 	let $talk;
 	let content;
 
@@ -460,7 +517,7 @@ function processMessage(data, prev){
 		default:
 			console.log(data);
 	}
-	$board[prev ? 'prepend' : 'append']($talk = $(`<div id="actt-${rId}-${data.id}" class="act-talk${isMe ? " act-my-talk" : ""} act-talk-${data.user.id}" onclick="traceMessage('${data.user.id}');">
+	$board[prev ? 'prepend' : 'append']($talk = $(`<div id="actt-${rId}-${data.id}" class="act-talk act-talk-${data.user.id}" onclick="traceMessage('${data.user.id}');">
 		${content}
 		<div class="actt-stamp">${new Date(data.time).toLocaleTimeString()}</div>
 	</div>`));
@@ -470,6 +527,13 @@ function processMessage(data, prev){
 			.children(".ati-count").show().html(++act.nCount);
 	}
 	if($data._traced == data.user.id) $talk.addClass("act-talk-traced");
+	if(isMe){
+		$talk.addClass("act-my-talk");
+		if($data._$pending){
+			$data._$pending.remove();
+			delete $data._$pending;
+		}
+	}
 	if(isBottom || isMe){
 		board.scrollTop = board.scrollHeight - board.clientHeight;
 	}else if(!prev){
@@ -479,6 +543,8 @@ function processMessage(data, prev){
 		act._prevChat++;
 		board.removeChild(board.children[0]);
 	}
+	if(saveId) act._lastMsgId = data.id;
+	playSound('k');
 
 	function cUser(user){
 		return `
@@ -520,10 +586,20 @@ function emulateMessage(type, msg, pre, rId, user){
  */
 function processWhisper(data){
 	let pre = `<label style="color: orange;">${FA('lock')}</label> `;
-	let $talk = emulateMessage('whisper', data.data, pre, data.rId, data.from)
+	let $talk;
+	let notiTitle;
+	
+	if(data.data === true){ // 호출
+		pre = pre.replace(FA('lock'), FA('feed'));
+		notiTitle = data.data = L('on-call', data.from.nickname);
+		playSound('alarm');
+	}else{
+		notiTitle = L('on-whisper', data.from.nickname);
+	}
+	$talk = emulateMessage('whisper', data.data, pre, data.rId, data.from)
 		.addClass("act-talk-cmd-receive");
 
-	if(!Remote.getCurrentWindow().isFocused()) notify(L('on-whisper', data.from.nickname), data.data);
+	if(!Remote.getCurrentWindow().isFocused()) notify(notiTitle, data.data);
 }
 /**
  * 불러온 텍스트 정보를 처리한다.
@@ -575,11 +651,15 @@ function sendMessage(type, room, data){
 		};
 		command(form.raw, form.room.id, 'cmd-send');
 		ipc.send('cojer', 'Command', form);
-	}else ipc.send('cojer', 'Send', {
-		type: type,
-		room: room,
-		data: data
-	});
+	}else{
+		if($data._$pending) $data._$pending.remove();
+		$data._$pending = emulateMessage('pending', data, FA('spinner fa-spin', true), room.id).addClass("act-pending-talk");
+		ipc.send('cojer', 'Send', {
+			type: type,
+			room: room,
+			data: data
+		});
+	}
 }
 /**
  * 주어진 아이디를 가진 사용자의 채팅을 강조 표시한다.
@@ -601,10 +681,9 @@ function traceMessage(id){
  */
 function clearBoard(id){
 	let act = $data.acts[id];
-	let lastId = act.$stage.board.children(".act-talk:last").attr('id').split('-')[3];
 	
-	Activity.current._prevChat = lastId;
-	Activity.current.$stage.board.empty();
+	act._prevChat = act._lastMsgId;
+	act.$stage.board.empty();
 }
 /**
  * 이미지에 대한 팝업을 띄운다.
@@ -612,7 +691,7 @@ function clearBoard(id){
  * @param {string} url 이미지 경로
  */
 function popupImage(url){
-	window.open(url);
+	window.open(`./viewer.pug?url=${encodeURIComponent(url)}`);
 }
 /**
  * 방에 입장한다.
@@ -625,6 +704,35 @@ function requestJoin(cId, rId){
 	ipc.send('cojer', 'Join', {
 		cId: cId, rId: rId
 	});
+}
+/**
+ * 소리를 재생한다.
+ * 
+ * @param {string} key 소리 식별자
+ */
+function playSound(key){
+	if(OPT['mute']) return;
+	$sound[key].play();
+}
+/**
+ * 유휴 상태를 해제한다.
+ */
+function breakIdle(){
+	if($data.isIdle){
+		Channel.send('status', { status: "online" });
+	}
+	$data.isIdle = false;
+	$data._idle = 0;
+}
+/**
+ * 유휴 상태를 확인한다.
+ */
+function checkIdle(){
+	if($data.isIdle) return;
+	if(++$data._idle >= OPT['idle-time']){
+		$data.isIdle = true;
+		Channel.send('status', { status: "afk" });
+	}
 }
 /**
  * 오류를 알린다.

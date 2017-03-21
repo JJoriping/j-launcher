@@ -113,6 +113,7 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 			margin: 2px;
 		}
 			.act-menu-title>i{ border-left: 1px solid lightgray; margin: 0px 4px; }
+			.act-menu-prev>i{ transform: translateY(-2px) rotate(90deg); }
 			.actm-title-cafe, .actm-title-attr{ color: #555; }
 		.act-menu>button{
 			float: right;
@@ -130,6 +131,7 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 		overflow-y: scroll;
 	}
 		.act-talk{ width: 100%; padding: 3px 0px; }
+			.act-pending-talk{ color: gray; }
 			.act-my-talk{ background-color: #EEE; }
 				.act-talk-cmd-send{ color: darkgreen; }
 				.act-talk-cmd-receive{ color: mediumblue; }

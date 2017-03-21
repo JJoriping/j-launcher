@@ -43,8 +43,9 @@ ipc.on('alert', (ev, msg) => {
 ipc.on('dialog', (ev, type) => {
 	return $dialog(type, true).toggle();
 });
-ipc.on('external', (ev, href) => {
-	shell.openExternal(href);
+ipc.on('external', (ev, href, isLocal) => {
+	if(isLocal) shell.openItem(href);
+	else shell.openExternal(href);
 });
 ipc.on('log', (ev, msg) => {
 	console.log(msg);
@@ -62,12 +63,14 @@ function FA(key, afterSpace){
 }
 /**
  * 프로그램의 설정 값을 변경하고 파일로 저장한다.
+ * 값이 할당되지 않은 경우 해당 정보를 지운다.
  * 
  * @param {string} key 식별자
- * @param {*} value 값
+ * @param {*} value 값. undefined 또는 null인 경우 해당 정보를 지운다.
  */
 function setOpt(key, value){
-	OPT[key] = value;
+	if(value === undefined || value === null) delete OPT[key];
+	else OPT[key] = value;
 	ipc.send('opt', key, value);
 }
 /**
@@ -77,6 +80,10 @@ function setOpt(key, value){
  * @param {string} msg 내용
  */
 function notify(title, msg){
+	let $window = Remote.getCurrentWindow();
+
+	$window.flashFrame(true);
+	$window.once('focus', e => $window.flashFrame(false));
 	new Notification(`${title} - ${L('title')}`, {
 		icon: "img/logo.ico",
 		body: msg

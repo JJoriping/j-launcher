@@ -7,8 +7,13 @@ const CoJer = require("./lib/cojer.js");
 const SCRIPTS = {
 	'account-login': () => exports.send('dialog', "login"),
 	'account-logout': () => CoJer.requestLogout(exports),
-	'channel-status': () => exports.send('dialog', "status"),
-	'channel-list': () => exports.send('event', "chan-list"),
+	'chat-status': () => exports.send('dialog', "status"),
+	'chat-list': () => exports.send('event', "chan-list"),
+	'chat-image': () => exports.send('event', "chat-image"),
+	'program-o-settings': () => {
+		exports.send('command', "help_opt");
+		exports.send('external', global.OPT_FILE, true)
+	},
 	'program-info': () => {
 		exports.send('alert', [
 			`=== ${PKG.name} ===`,
@@ -43,23 +48,34 @@ exports.MAIN_MENU = [
 		]
 	},
 	{
-		label: L('menu-channel'),
+		label: L('menu-chat'),
 		submenu: [
 			{
-				label: L('menu-channel-status'),
+				label: L('menu-chat-image'),
+				accelerator: "CmdOrCtrl+Space",
+				click: () => exports.run("chat-image")
+			},
+			{ type: "separator" },
+			{
+				label: L('menu-chat-status'),
 				accelerator: "CmdOrCtrl+T",
-				click: () => exports.run("channel-status")
+				click: () => exports.run("chat-status")
 			},
 			{
-				label: L('menu-channel-list'),
+				label: L('menu-chat-list'),
 				accelerator: "CmdOrCtrl+`",
-				click: () => exports.run("channel-list")
+				click: () => exports.run("chat-list")
 			}
 		]
 	},
 	{
 		label: L('menu-program'),
 		submenu: [
+			{
+				label: L('menu-program-o-settings'),
+				click: () => exports.run("program-o-settings")
+			},
+			{ type: "separator" },
 			{
 				label: L('menu-program-info'),
 				click: () => exports.run("program-info")

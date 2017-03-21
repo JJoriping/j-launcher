@@ -13,6 +13,10 @@ const CHANNEL_MENU = Remote.Menu.buildFromTemplate([
 	{
 		label: L('menu-actli-whisper'),
 		click: () => { Activity.current.$stage.chat.val(`/w ${$data._cTarget} `).focus(); }
+	},
+	{
+		label: L('menu-actli-call'),
+		click: () => Channel.callUser($data._cTarget)
 	}
 ]);
 const CHANNEL_HOST = "jjo.kr";
@@ -39,7 +43,8 @@ class Activity{
 		this.$obj = $obj;
 		
 		this.$stage = {
-			board: $obj.children(".act-board"),
+			board: $obj.children(".act-board")
+				.on('scroll', e => this.onBoardScroll(e.originalEvent)),
 			ghost: $obj.find(".act-ghost").on('click', e => {
 				let b = this.$stage.board.get(0);
 
@@ -62,16 +67,17 @@ class Activity{
 			quit: $obj.find(".act-menu-quit")
 				.on('click', e => this.onMenuQuitClick(e))
 		};
-		this.initChannel(this.$stage.list);
+		this.initChannel();
 	}
 	/**
 	 * 채널을 초기화한다.
 	 * 
-	 * @param {*} $list 채널 이용자 목록을 가리키는 jQuery 객체
+	 * @param {*} $list 채널 이용자 목록을 가리키는 jQuery 객체(기본값: 액티비티 스테이지로부터 얻은 jQuery 객체)
 	 */
 	initChannel($list){
 		if(this.id == ACT_OPENED) return;
 
+		if(!$list) $list = this.$stage.list;
 		if(OPT['channel-pw']){
 			this.channel = new Channel(this.id, $list);
 		}else{
@@ -86,7 +92,7 @@ class Activity{
 					setOpt('channel-pw', pw);
 					
 					Channel.init($data.myInfo.profile.id, pw);
-					for(let i in $data.acts) $data.acts[i].initChannel($data.acts[i].$stage.list);
+					for(let i in $data.acts) $data.acts[i].initChannel();
 				});
 			});
 			this.$stage.list.children(".act-mr-chan-go-email").on('click', e => {
@@ -153,6 +159,9 @@ class Activity{
 		});
 	}
 
+	onBoardScroll(e){
+		if(checkScrollBottom(e.currentTarget)) this.$stage.ghost.hide();
+	}
 	onChatKeyDown(e){
 		if(!e.shiftKey && e.keyCode == 13){
 			this.$stage.send.trigger('click');
@@ -226,16 +235,33 @@ class Activity{
  * 채널에 접속하여 쪼런처를 이용하는 사람들에게 부가 기능을 제공한다.
  */
 class Channel{
+	/**
+	 * 주어진 인증 정보로 채널 접속을 시도한다.
+	 * 접속에 성공하는 경우 Channel 클래스의 정적 멤버 socket을 통해 통신할 수 있다.
+	 * 
+	 * @param {string} id 네이버 아이디
+	 * @param {string} pw 채널 암호
+	 */
 	static init(id, pw){
 		let socket = new WebSocket(`ws://${CHANNEL_HOST}:525/${id}@${pw}`);
 		
 		if(Channel.socket){
 			Channel._queue = [];
+			Channel.socket.onmessage = undefined;
+			Channel.socket.onclose = undefined;
 			Channel.socket.close();
+			delete Channel.socket;
 		}
 		socket.onmessage = Channel.onMessage;
 		socket.onclose = Channel.onClose;
 	}
+	/**
+	 * 채널로 정보를 전송한다.
+	 * 채널에 접속한 상태가 아닌 경우 큐에 정보를 저장한다.
+	 * 
+	 * @param {string} type 정보의 유형
+	 * @param {string} data 정보
+	 */
 	static send(type, data){
 		if(!data) data = {};
 		data.type = type;
@@ -244,10 +270,32 @@ class Channel{
 		if(Channel.socket) Channel.socket.send(data);
 		else Channel._queue.push(data);
 	}
+	/**
+	 * send() 메소드 등에 의해 큐에 저장된 정보를 즉시 채널로 전송하고 큐를 비운다.
+	 * 
+	 * @param {WebSocket} socket 웹소켓 객체
+	 */
 	static flushQueue(socket){
 		Channel.socket = socket;
 		while(Channel._queue[0]) socket.send(Channel._queue.shift());
 	}
+	/**
+	 * 채널에 접속해 있는 해당 아이디를 가진 사용자를 호출한다.
+	 * 
+	 * @param {string} id 네이버 아이디
+	 * @param {string} rId 채팅방 식별자(기본값: 현재 채팅방 식별자)
+	 */
+	static callUser(id, rId){
+		Channel.send('call', {
+			rId: rId || Activity.current.room.id,
+			target: id
+		});
+	}
+	/**
+	 * 주어진 정보를 바탕으로 사용자 정보를 갱신한다.
+	 * 
+	 * @param {*} user 사용자 정보
+	 */
 	static updateUser(user){
 		let $items = $(`.actli-${user.id}`);
 		let status = global.LANG[`diag-status-${user.status}`] || user.status;
@@ -294,7 +342,11 @@ class Channel{
 		}
 	}
 	static onClose(code){
-		$(".act-list").empty().addClass("act-list-closed");
+		setOpt('channel-pw');
+		$(".act-list").addClass("act-list-closed").html(`
+			<label>${L('act-mr-chan-closed')}</label><br/>
+			<button style="color: blue;" onclick="Activity.current.initChannel();">${L('act-mr-chan-retry')}</button>
+		`);
 	}
 
 	constructor(rId, $list){
