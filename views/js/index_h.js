@@ -15,6 +15,10 @@ const CHANNEL_MENU = Remote.Menu.buildFromTemplate([
 		click: () => { Activity.current.$stage.chat.val(`/w ${$data._cTarget} `).focus(); }
 	},
 	{
+		label: L('menu-actli-note'),
+		click: () => { Activity.current.$stage.chat.val(`/note ${$data._cTarget} `).focus(); }
+	},
+	{
 		label: L('menu-actli-call'),
 		click: () => Channel.callUser($data._cTarget)
 	}
@@ -55,6 +59,7 @@ class Activity{
 			list: $obj.children(".act-list"),
 			chat: $obj.find(".act-chat")
 				.on('keydown', e => this.onChatKeyDown(e))
+				.on('keyup', e => this.onChatKeyUp(e))
 				.on('paste', e => this.onChatPaste(e.originalEvent)),
 			send: $obj.find(".act-send")
 				.on('click', e => this.onSendClick(e)),
@@ -163,9 +168,50 @@ class Activity{
 		if(checkScrollBottom(e.currentTarget)) this.$stage.ghost.hide();
 	}
 	onChatKeyDown(e){
-		if(!e.shiftKey && e.keyCode == 13){
-			this.$stage.send.trigger('click');
-			e.preventDefault();
+		switch(e.key){
+			case '/':
+				if(!e.currentTarget.value){
+					$data._hint = true;
+					setCommandHint(true, "/");
+				}
+				break;
+			case 'Enter':
+				if(!e.shiftKey){
+					if($data._hint && $data._hIndex >= 0){
+						this.$stage.chat.val("/" + $data._hList[$data._hIndex] + " ");
+					}else{
+						this.$stage.send.trigger('click');
+					}
+					e.preventDefault();
+				}
+				break;
+			case 'Escape':
+				setCommandHint(false);
+				break;
+			case 'ArrowUp':
+			case 'ArrowDown':
+				if($data._hint){
+					if($data._hIndex == -1){
+						$data._hIndex = 0;
+					}else{
+						if(e.key == 'ArrowUp'){
+							if(!$data._hIndex--) $data._hIndex = $data._hList.length - 1;
+						}else{
+							if(++$data._hIndex == $data._hList.length) $data._hIndex = 0;
+						}
+					}
+					setCommandHint(true, e.currentTarget.value, $data._hList[$data._hIndex]);
+					e.preventDefault();
+				}
+				break;
+			default: return;
+		}
+	}
+	onChatKeyUp(e){
+		if($data._hint){
+			if(e.key == 'ArrowUp' || e.key == 'ArrowDown') return;
+			$data._hIndex = -1;
+			setCommandHint(true, e.currentTarget.value);
 		}
 	}
 	onChatPaste(e){
@@ -203,6 +249,7 @@ class Activity{
 			return this.$stage.chat.val(text.slice(0, 500));
 		}
 		sendMessage("text", this.room, text);
+		setCommandHint(false);
 		this.$stage.chat.val("");
 	}
 	onImageClick(e){
@@ -330,6 +377,9 @@ class Channel{
 			case 'list':
 				chan.list = data.list;
 				chan.renderList();
+				break;
+			case 'notes':
+				processNotes(data);
 				break;
 			case 'user':
 				Channel.updateUser(data.user);

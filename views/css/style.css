@@ -50,6 +50,21 @@ button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit;
 			.diag-tail>button{ float: right; padding: 2px 0px; margin: 0px 1px; width: 80px; }
 			.ok-button{ color: royalblue; background-color: lightskyblue; }
 			.diag-tail>button:disabled{ color: gray; background-color: #AAA; }
+/* 명령어 힌트 */
+#command-hint{
+	position: fixed;
+	display: none;
+	bottom: 100px;
+	width: calc(100% - 10px);
+	padding: 5px;
+	color: deepskyblue;
+	background-color: rgba(0, 0, 0, 0.7);
+	z-index: 1;
+}
+	.chint-chosen{ background-color: rgba(255, 255, 255, 0.1); }
+	.chint-match{ font-weight: bold; color: lightskyblue; }
+	.chint-usage{ color: whitesmoke; }
+	.chint-expl{ display: none; color: lightgray; }
 /* 탭 */
 #act-tab{
 	position: absolute;

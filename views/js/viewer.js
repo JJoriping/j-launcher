@@ -29,11 +29,11 @@ function parseQuery(url){
 }
 function onImageLoad(img){
 	let $window = Remote.getCurrentWindow();
-	let fileName = img.src.match(/^.+\/(.+?)\?.+$/)[1];
+	let fileName = img.src.match(/^.+\/(.+?)(\?.+)?$/)[1];
 
 	document.title = `${decodeURI(fileName)}(${img.naturalWidth}x${img.naturalHeight}) - ${document.title}`;
 	if(OPT['viewer-resize']) $window.setSize(
-		Math.min(Math.max(img.naturalWidth + 60, 200), 1000),
-		Math.min(Math.max(img.naturalHeight + 90, 200), 1000)
+		Math.min(Math.max(img.naturalWidth + 60, 200), 1366),
+		Math.min(Math.max(img.naturalHeight + 90, 200), 768)
 	);
 }

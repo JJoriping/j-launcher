@@ -21,7 +21,8 @@ $(() => {
 			statusOK: $("#diag-status-ok")
 		},
 		actTab: $("#act-tab"),
-		acts: $("#activities")
+		acts: $("#activities"),
+		cmdHint: $("#command-hint")
 	};
 	// 소리 등록
 	$sound = {};
@@ -146,12 +147,37 @@ const COMMANDS = {
 	call: data => {
 		Channel.callUser(data.target, data.room.id);
 	},
+	chance: data => {
+		let tui = "";
+		let chance = data.chance * 100;
+		let i;
+
+		for(i=0; i<100; i+=10){
+			if(i < chance) tui += "■";
+			else tui += "□";
+		}
+		command(`${tui} ${(chance).toFixed(2)}%`, data.room.id, 'cmd-receive', FA('random', true));
+	},
 	clear: data => {
 		clearBoard($data.currentAct);
 		command(L('cleared'), data.room.id, "cmd-receive");
 	},
+	coin: data => {
+		let tui = "";
+		let chance = data.chance;
+
+		if(chance < 0.49) tui = L('coin-yes');
+		else if(chance < 0.98) tui = L('coin-no');
+		else tui = L('coin-undefined');
+		command(tui, data.room.id, 'cmd-receive', FA('random', true));
+	},
+	dice: data => {
+		let res = Math.floor(Math.random() * data.max) + 1;
+
+		command(res.toString(), data.room.id, 'cmd-receive', FA('random', true));
+	},
 	help: data => {
-		let pre = Object.keys(COMMANDS).sort().map(v => {
+		let pre = CMD_LIST.map(v => {
 			let usage = L('cmdu-' + v).replace(/\((.+?)\)/g, (v, p1) => `<u>${p1}</u>`);
 
 			return `<li><b>/${v} ${usage}</b><br/>${L('cmdx-' + v)}</li>`;
@@ -171,8 +197,17 @@ const COMMANDS = {
 		catch(e){ data._res = e.toString(); data._addr = `<label style='color: orange;'>${FA('warning', true)}</label>`; }
 		command(data._res, data.room.id, 'cmd-receive', data._addr);
 	},
+	note: data => {
+		Channel.send('note', {
+			target: data.target,
+			data: data.data
+		});
+	},
 	set: data => {
 		setOpt(data.key, eval(data.value));
+	},
+	status: data => {
+		Channel.send('status', { status: data.data });
 	},
 	w: data => {
 		Channel.send('whisper', {
@@ -182,6 +217,7 @@ const COMMANDS = {
 		});
 	}
 };
+const CMD_LIST = Object.keys(COMMANDS).sort();
 ipc.on('command', (ev, type, data) => COMMANDS[type](data));
 /**
  * 명령어 사용에 대한 메시지를 출력한다.
@@ -193,7 +229,7 @@ ipc.on('command', (ev, type, data) => COMMANDS[type](data));
  * @returns {*} 새로 생성된 채팅 jQuery 객체
  */
 function command(msg, rId, group, addPre){
-	let $R = emulateMessage("command", msg, `<label style="color: gray;">${FA('gear')}</label>${addPre || ""}`);
+	let $R = emulateMessage("command", msg, `<label style="color: gray;">${FA('gear')}</label>${addPre || " "}`);
 
 	if(group) $R.addClass(`act-talk-${group}`);
 	return $R;
@@ -206,7 +242,6 @@ ipc.on('event', (ev, type, data) => {
 			notify(L('login-ok'));
 			$dialog('login').hide();
 			renderMyCafes();
-			if(OPT['channel-pw']) Channel.init(data.profile.id, OPT['channel-pw']);
 			ipc.send('cojer', 'MyRoomList');
 			break;
 		case 'login-no':
@@ -231,6 +266,7 @@ ipc.on('event', (ev, type, data) => {
 			if(localStorage.hasOwnProperty('recentAct')){
 				setActivity(localStorage.getItem('recentAct'));
 			}
+			if(OPT['channel-pw']) Channel.init($data.myInfo.profile.id, OPT['channel-pw']);
 			break;
 		case 'sess-msg':
 			processMessage(data, false, true);
@@ -482,6 +518,7 @@ function processMessage(data, prev, saveId){
 	let $board = act.$stage.board, board = $board.get(0);
 	let isMe = data.user.id == $data.myInfo.profile.id;
 	let isBottom = checkScrollBottom(board);
+	let now = new Date(data.time);
 	let $talk;
 	let content;
 
@@ -519,7 +556,7 @@ function processMessage(data, prev, saveId){
 	}
 	$board[prev ? 'prepend' : 'append']($talk = $(`<div id="actt-${rId}-${data.id}" class="act-talk act-talk-${data.user.id}" onclick="traceMessage('${data.user.id}');">
 		${content}
-		<div class="actt-stamp">${new Date(data.time).toLocaleTimeString()}</div>
+		<div class="actt-stamp" title="${now.toLocaleString()}">${now.toLocaleTimeString()}</div>
 	</div>`));
 	if($data.currentAct != rId){
 		if(act.nCount === 0) act.nStartId = data.id;
@@ -566,9 +603,10 @@ function processMessage(data, prev, saveId){
  * @param {string} msg 메시지(기본값: "")
  * @param {string} pre 전(pre)-메시지(기본값: "")
  * @param {string} rId 채팅방 식별자(기본값: 현재 채팅방)
- * @param {string} user 사용자 정보(기본값: 내 정보)
+ * @param {*} user 사용자 정보(기본값: 내 정보)
+ * @param {number} time 시간 정보(기본값: 현재)
  */
-function emulateMessage(type, msg, pre, rId, user){
+function emulateMessage(type, msg, pre, rId, user, time){
 	return processMessage({
 		id: `${type}-${++$data.localId}`,
 		room: { id: rId || Activity.current.room.id },
@@ -576,7 +614,19 @@ function emulateMessage(type, msg, pre, rId, user){
 		type: "text",
 		preMessage: pre || "",
 		message: msg,
-		time: Date.now()
+		time: time || Date.now()
+	});
+}
+/**
+ * 채널로부터의 쪽지를 처리한다.
+ * 
+ * @param {*} data 쪽지 정보
+ */
+function processNotes(data){
+	let pre = `<label style="color: skyblue;">${FA('envelope')}</label> `;
+
+	data.list.forEach(v => {
+		emulateMessage("notes", v.data, pre, undefined, v.from, v.time);
 	});
 }
 /**
@@ -593,13 +643,17 @@ function processWhisper(data){
 		pre = pre.replace(FA('lock'), FA('feed'));
 		notiTitle = data.data = L('on-call', data.from.nickname);
 		playSound('alarm');
+	}else if(data.data === 1){ // 쪽지 보내기에 성공
+		pre = pre.replace(FA('lock'), FA('envelope'));
+		data.data = L('noted');
+		notiTitle = null;
 	}else{
 		notiTitle = L('on-whisper', data.from.nickname);
 	}
 	$talk = emulateMessage('whisper', data.data, pre, data.rId, data.from)
 		.addClass("act-talk-cmd-receive");
 
-	if(!Remote.getCurrentWindow().isFocused()) notify(notiTitle, data.data);
+	if(!Remote.getCurrentWindow().isFocused() && notiTitle) notify(notiTitle, data.data);
 }
 /**
  * 불러온 텍스트 정보를 처리한다.
@@ -638,27 +692,71 @@ function processImage(img, source, downScroll){
 function sendMessage(type, room, data){
 	if(!data) return;
 
-	if(type == "text" && data[0] == '/'){
-		let ci = data.indexOf(' ');
-		let form;
-		
-		if(ci == -1) ci = data.length;
-		form = {
-			type: data.slice(1, ci),
-			room: room,
-			raw: data,
-			data: data.slice(ci + 1)
-		};
-		command(form.raw, form.room.id, 'cmd-send');
-		ipc.send('cojer', 'Command', form);
+	if(type == "text"){
+		if(data[0] == '/'){
+			let ci = data.indexOf(' ');
+			let form;
+			
+			if(ci == -1) ci = data.length;
+			form = {
+				type: data.slice(1, ci),
+				room: room,
+				raw: data,
+				data: data.slice(ci + 1)
+			};
+			command(form.raw, form.room.id, 'cmd-send');
+			ipc.send('cojer', 'Command', form);
+			return;
+		}
+		if(!data.trim()) return;
+	}
+	if($data._$pending) $data._$pending.remove();
+	$data._$pending = emulateMessage('pending', (typeof data == "string") ? data : "...", FA('spinner fa-spin', true), room.id).addClass("act-pending-talk");
+	ipc.send('cojer', 'Send', {
+		type: type,
+		room: room,
+		data: data
+	});
+}
+/**
+ * 명령어 힌트 상태를 설정한다.
+ * 
+ * @param {boolean} visible 힌트 표시 여부
+ * @param {string} text 검색 문자열
+ * @param {string} chosen 선택된 명령어
+ */
+function setCommandHint(visible, text, chosen){
+	let reg;
+	let argv;
+
+	if(!text){
+		$data._hint = visible = false;
+		$stage.cmdHint.hide();
+		return;
+	}
+	try{
+		argv = text.slice(1).split(' ');
+		reg = new RegExp(`^(${argv[0]})${(argv.length > 1) ? '$' : ''}`);
+	}catch(e){
+		$stage.cmdHint.hide();
+		return;
+	}
+	if(visible){
+		let list = CMD_LIST.filter(v => reg.test(v));
+		let res = list.map(v => `
+			<li id="chint-${v}">/${v.replace(reg, "<label class='chint-match'>$1</label>")} <label class="chint-usage">${L('cmdu-' + v)}</label><div class="chint-expl">%${v}%</div></li>
+		`).join('');
+
+		if(!chosen && list.length == 1) chosen = list[0];
+		if(chosen){
+			res = res
+				.replace(`>%${chosen}%`, ` style="display: block;">${L('cmdx-' + chosen)}`)
+				.replace("chint-" + chosen, `chint-${chosen}" class="chint-chosen`);
+		}
+		$stage.cmdHint.show().html(res);
+		$data._hList = list;
 	}else{
-		if($data._$pending) $data._$pending.remove();
-		$data._$pending = emulateMessage('pending', data, FA('spinner fa-spin', true), room.id).addClass("act-pending-talk");
-		ipc.send('cojer', 'Send', {
-			type: type,
-			room: room,
-			data: data
-		});
+		$stage.cmdHint.hide();
 	}
 }
 /**
