@@ -25,6 +25,7 @@ const CHANNEL_MENU = Remote.Menu.buildFromTemplate([
 ]);
 const CHANNEL_HOST = "jjo.kr";
 const ACT_OPENED = "opened";
+const HISTORY_MAX = 100;
 
 /**
  * 액티비티를 정의한다.
@@ -44,6 +45,7 @@ class Activity{
 		this.id = id;
 		this.title = title;
 		this.ord = ord;
+		this.history = new ChatHistory(this);
 		this.$obj = $obj;
 		
 		this.$stage = {
@@ -186,7 +188,11 @@ class Activity{
 				}
 				break;
 			case 'Escape':
-				setCommandHint(false);
+				if($data._hint){
+					setCommandHint(false);
+				}else{
+					this.$stage.ghost.hide();
+				}
 				break;
 			case 'ArrowUp':
 			case 'ArrowDown':
@@ -202,6 +208,9 @@ class Activity{
 					}
 					setCommandHint(true, e.currentTarget.value, $data._hList[$data._hIndex]);
 					e.preventDefault();
+				}else{
+					if(e.key == 'ArrowUp') Activity.current.history.up();
+					else Activity.current.history.down();
 				}
 				break;
 			default: return;
@@ -435,3 +444,54 @@ class Channel{
 	}
 }
 Channel._queue = [];
+
+/**
+ * 채팅 내역을 정의한다.
+ * 사용자의 키 입력에 따라 내역을 조회할 수 있다.
+ */
+class ChatHistory{
+	constructor(activity){
+		this.activity = activity;
+		this.list = [];
+		this.index = -1;
+	}
+
+	/**
+	 * 입력 내역에 주어진 내용을 추가한다.
+	 * 
+	 * @param {string} data 내용
+	 */
+	put(data){
+		if(this.list.unshift(data) > HISTORY_MAX){
+			this.list.pop();
+		}
+		this.index = -1;
+	}
+
+	/**
+	 * 내역을 위로 하나 탐색하여 연결된 액티비티의 입력란에 넣는다.
+	 */
+	up(){
+		let chat = this.activity.$stage.chat[0];
+		let len = this.list.length;
+
+		if(chat.selectionStart + chat.selectionEnd > 0) return;
+		if(!len) return;
+
+		this.index = Math.min(this.index + 1, len - 1);
+		chat.value = this.list[this.index];
+	}
+
+	/**
+	 * 내역을 아래로 하나 탐색하여 연결된 액티비티의 입력란에 넣는다.
+	 */
+	down(){
+		let chat = this.activity.$stage.chat[0];
+
+		if(chat.selectionStart != chat.selectionEnd || chat.selectionEnd != chat.value.length) return;
+		if(!this.list.length) return;
+
+		this.index = Math.max(this.index - 1, 0);
+		chat.value = this.list[this.index];
+	}
+}

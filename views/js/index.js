@@ -42,6 +42,19 @@ $(() => {
 			case 'Escape':
 				$(".dialog:visible:last").hide();
 				break;
+			case 'Tab':
+				if(e.ctrlKey){
+					let $list = $(".at-item");
+					let $c = $(".at-current");
+					let len = $list.length;
+
+					if(e.shiftKey) $c = $c.prev()[0];
+					else $c = $c.next()[0];
+					if(!$c) $c = $list.get(!e.shiftKey - 1);
+					
+					setActivity($c.id.slice(8));
+				}
+				break;
 			default: return;
 		}
 	};
@@ -674,6 +687,8 @@ function processText(text){
 	const TABLE = {
 		'<': "&lt;", '>': "&gt;", '&': "&amp;", '\n': "<br>"
 	};
+	
+	if(OPT['use-jom']) return JOM.parse(text);
 	return text
 		.replace(/<|>|&|\n/g, v => TABLE[v])
 		.replace(/(https?:\/\/.+?\..+?)(\s|<br>|$)/gi, (v, p1, p2) => `<a href="#" onclick="shell.openExternal('${p1}');">${p1}</a>${p2}`);
@@ -718,6 +733,7 @@ function sendMessage(type, room, data){
 			return;
 		}
 		if(!data.trim()) return;
+		Activity.current.history.put(data);
 	}
 	if($data._$pending) $data._$pending.remove();
 	$data._$pending = emulateMessage('pending', (typeof data == "string") ? data : "...", FA('spinner fa-spin', true), room.id).addClass("act-pending-talk");
