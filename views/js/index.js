@@ -1,5 +1,5 @@
 const OPT_KEYS = [
-	"auto", "channel-pw", "idle-time", "max-chat", "mute",
+	"auto", "block", "block-log", "channel-pw", "idle-time", "max-chat", "mute",
 	"no-ask-upload", "prev-per-req", "status-list", "viewer-resize"
 ];
 let $stage;
@@ -523,6 +523,14 @@ function processMessage(data, prev, saveId){
 	let content;
 
 	if(isMe) data.user = $data.myInfo.profile;
+	else if(checkBlock(`${data.user.id}: ${data.message}`)){
+		if(!prev) ipc.send('block', {
+			id: data.user.id,
+			content: data.message,
+			time: now
+		});
+		return;
+	}
 	switch(data.type){
 		case "text": content = `
 			${cUser(data.user)}
@@ -635,6 +643,7 @@ function processNotes(data){
  * @param {*} data 귓속말 정보
  */
 function processWhisper(data){
+	let $window = Remote.getCurrentWindow();
 	let pre = `<label style="color: orange;">${FA('lock')}</label> `;
 	let $talk;
 	let notiTitle;
@@ -653,7 +662,7 @@ function processWhisper(data){
 	$talk = emulateMessage('whisper', data.data, pre, data.rId, data.from)
 		.addClass("act-talk-cmd-receive");
 
-	if(!Remote.getCurrentWindow().isFocused() && notiTitle) notify(notiTitle, data.data);
+	if(notiTitle) if(!$window.isFocused() || $window.isMinimized()) notify(notiTitle, data.data);
 }
 /**
  * 불러온 텍스트 정보를 처리한다.
@@ -831,6 +840,20 @@ function checkIdle(){
 		$data.isIdle = true;
 		Channel.send('status', { status: "afk" });
 	}
+}
+/**
+ * 차단 대상인 채팅인지 검사한다.
+ * 
+ * @param {string} serial 채팅 구문. "(아이디): (내용)" 꼴로 주어진다.
+ * @returns {boolean} 차단 대상인 경우 true
+ */
+function checkBlock(serial){
+	let list, i;
+	
+	list = OPT['block'];
+	for(i in list) if(serial.match(new RegExp(list[i]))) return true;
+
+	return false;
 }
 /**
  * 오류를 알린다.

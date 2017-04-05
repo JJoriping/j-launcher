@@ -121,6 +121,9 @@ CoJer.log = msg => {
 ipcMain.on('opt', (e, key, value) => {
 	CoJer.setOpt(e.sender, key, value);
 });
+ipcMain.on('block', (e, data) => {
+	CoJer.setBlockLog(e.sender, data);
+});
 ipcMain.on('cojer', (e, type, opts) => {
 	let F = CoJer[`request${type}`];
 
