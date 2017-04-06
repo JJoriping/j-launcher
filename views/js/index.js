@@ -222,6 +222,9 @@ const COMMANDS = {
 	status: data => {
 		Channel.send('status', { status: data.data });
 	},
+	sticker: data => {
+		sendMessage('sticker', Activity.current.room, `${data.group}-${data.seq}`);
+	},
 	w: data => {
 		Channel.send('whisper', {
 			rId: Activity.current.id,
@@ -286,6 +289,9 @@ ipc.on('event', (ev, type, data) => {
 			break;
 		case 'sess-err':
 			console.error(data);
+			break;
+		case 'sess-progress':
+			processProgress(data);
 			break;
 		case 'prev-chat':
 			data.reverse().forEach(v => processMessage(v, true));
@@ -557,19 +563,52 @@ function processMessage(data, prev, saveId){
 			</div>
 			`;
 			break;
-		case "sticker": content = `
+		case "sticker":
+			if(!data.image){
+				data._sticker = data.message.split('-');
+				data._sticker = `https://ssl.phinf.net/gfmarket/${data._sticker[0]}/original_${data._sticker[1]}.png`;
+				data.xxhdpi = data._sticker + "?type=p100_100";
+				data.image = data._sticker + "?type=p50_50";
+			}
+			content = `
 			${cUser(data.user)}
 			<div class="actt-body">
 				<img src="${data.image}" onload="processImage(this, '${data.xxhdpi}', ${isBottom});"/>
 			</div>
 			`;
 			break;
-		case "join":
-			content = cNotice(L('notice-join', data.user.nickname, data.user.id));
+		case "join": // 입장
+		case "leave": // 퇴장
+			content = cNotice(data.type,
+				data.user.nickname, data.user.id
+			);
 			act.setRoom(data.room);
 			break;
-		case "leave":
-			content = cNotice(L('notice-leave', data.user.nickname, data.user.id));
+		case "invite": // 초대
+			content = cNotice(data.type,
+				data.user.nickname, data.user.id,
+				data.target.map(v => `${v.nickname} (${v.id})`).join(', ')
+			);
+			act.setRoom(data.room);
+			break;
+		case "reject": // 강퇴
+			content = cNotice(data.type,
+				data.user.nickname, data.user.id,
+				data.target.nickname, data.target.id
+			);
+			act.setRoom(data.room);
+			break;
+		case "changeMaster": // 방장
+			content = cNotice("change-master",
+				data.target
+			);
+			act.setRoom(data.room);
+			break;
+		case "changeName": // 방 제목
+			content = cNotice("change-name",
+				data.user.nickname, data.user.id,
+				data.target
+			);
 			act.setRoom(data.room);
 			break;
 		default:
@@ -612,8 +651,10 @@ function processMessage(data, prev, saveId){
 			</div>
 		`;
 	}
-	function cNotice(msg){
-		return `<div class="actt-notice">${msg}</div>`;
+	function cNotice(type, ...args){
+		args.unshift("notice-" + type);
+
+		return `<div class="actt-notice">${L.apply(this, args)}</div>`;
 	}
 	return $talk;
 }
@@ -649,6 +690,16 @@ function processNotes(data){
 	data.list.forEach(v => {
 		emulateMessage("notes", v.data, pre, undefined, v.from, v.time);
 	});
+}
+/**
+ * 진행 이벤트를 처리한다.
+ * 파일 업로드 등에서 진행 이벤트가 발생한다.
+ * 
+ * @param {*} data 진행 이벤트 정보
+ */
+function processProgress(data){
+	if(!$data._$pending) return;
+	$data._$pending.children(".actt-body").html(data.percent.toFixed(1) + "%");
 }
 /**
  * 채널로부터의 귓속말을 처리한다.
@@ -688,10 +739,11 @@ function processText(text){
 		'<': "&lt;", '>': "&gt;", '&': "&amp;", '\n': "<br>"
 	};
 	
-	if(OPT['use-jom']) return JOM.parse(text);
+	if(OPT['use-jom']) return JOM.parse(text
+		.replace(/(https?:\/\/.+?\.[^)]+?)(?:\s|<br>|$)/gi, (v, p1) => `[${p1}](${p1})`));
 	return text
 		.replace(/<|>|&|\n/g, v => TABLE[v])
-		.replace(/(https?:\/\/.+?\..+?)(\s|<br>|$)/gi, (v, p1, p2) => `<a href="#" onclick="shell.openExternal('${p1}');">${p1}</a>${p2}`);
+		.replace(/(https?:\/\/.+?\..+?)(?:\s|<br>|$)/gi, (v, p1) => `<a href="#" onclick="shell.openExternal('${p1}');">${p1}</a>`);
 }
 /**
  * 불러온 이미지 정보를 처리한다.
@@ -717,6 +769,8 @@ function sendMessage(type, room, data){
 	if(!data) return;
 
 	if(type == "text"){
+		Activity.current.history.put(data);
+		// 명령어 처리
 		if(data[0] == '/'){
 			let ci = data.indexOf(' ');
 			let form;
@@ -733,10 +787,11 @@ function sendMessage(type, room, data){
 			return;
 		}
 		if(!data.trim()) return;
-		Activity.current.history.put(data);
 	}
 	if($data._$pending) $data._$pending.remove();
-	$data._$pending = emulateMessage('pending', (typeof data == "string") ? data : "...", FA('spinner fa-spin', true), room.id).addClass("act-pending-talk");
+	$data._$pending = emulateMessage('pending', (typeof data == "string") ? data : "...", FA('spinner fa-spin', true), room.id)
+		.addClass("act-pending-talk");
+	
 	ipc.send('cojer', 'Send', {
 		type: type,
 		room: room,
@@ -772,7 +827,9 @@ function setCommandHint(visible, text, chosen){
 			<li id="chint-${v}">/${v.replace(reg, "<label class='chint-match'>$1</label>")} <label class="chint-usage">${L('cmdu-' + v)}</label><div class="chint-expl">%${v}%</div></li>
 		`).join('');
 
-		if(!chosen && list.length == 1) chosen = list[0];
+		if(!chosen && list.length == 1){
+			chosen = list[0];
+		}
 		if(chosen){
 			res = res
 				.replace(`>%${chosen}%`, ` style="display: block;">${L('cmdx-' + chosen)}`)
