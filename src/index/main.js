@@ -153,89 +153,6 @@ $(() => {
 	else ipc.send('cojer', 'CheckAuth');
 });
 /**
- * 명령어를 총괄하는 상수 객체이다.
- */
-const COMMANDS = {
-	'/': null,
-	call: data => {
-		Channel.callUser(data.target, data.room.id);
-	},
-	chance: data => {
-		let tui = "";
-		let chance = data.chance * 100;
-		let i;
-
-		for(i=0; i<100; i+=10){
-			if(i < chance) tui += "■";
-			else tui += "□";
-		}
-		command(`${tui} ${(chance).toFixed(2)}%`, data.room.id, 'cmd-receive', FA('random', true));
-	},
-	clear: data => {
-		clearBoard($data.currentAct);
-		command(L('cleared'), data.room.id, "cmd-receive");
-	},
-	coin: data => {
-		let tui = "";
-		let chance = data.chance;
-
-		if(chance < 0.49) tui = L('coin-yes');
-		else if(chance < 0.98) tui = L('coin-no');
-		else tui = L('coin-undefined');
-		command(tui, data.room.id, 'cmd-receive', FA('random', true));
-	},
-	dice: data => {
-		let res = Math.floor(Math.random() * data.max) + 1;
-
-		command(res.toString(), data.room.id, 'cmd-receive', FA('random', true));
-	},
-	help: data => {
-		let pre = CMD_LIST.map(v => {
-			let usage = L('cmdu-' + v).replace(/\((.+?)\)/g, (v, p1) => `<u>${p1}</u>`);
-
-			return `<li><b>/${v} ${usage}</b><br/>${L('cmdx-' + v)}</li>`;
-		}).join('');
-
-		command("", data.room.id, 'cmd-receive', `<ul>${pre}</ul>${L('cmdx')}`);
-	},
-	help_opt: data => {
-		let pre = OPT_KEYS.map(v => {
-			return `<li><b>${v}</b><br/>${L('optx-' + v)}</li>`
-		}).join('');
-
-		command("", Activity.current.room.id, 'cmd-receive', `<ul>${pre}</ul>${L('cmdx')}`);
-	},
-	js: data => {
-		try{ data._res = String(eval(data.data)); }
-		catch(e){ data._res = e.toString(); data._addr = `<label style='color: orange;'>${FA('warning', true)}</label>`; }
-		command(data._res, data.room.id, 'cmd-receive', data._addr);
-	},
-	note: data => {
-		Channel.send('note', {
-			target: data.target,
-			data: data.data
-		});
-	},
-	set: data => {
-		setOpt(data.key, eval(data.value));
-	},
-	status: data => {
-		Channel.send('status', { status: data.data });
-	},
-	sticker: data => {
-		sendMessage('sticker', Activity.current.room, `${data.group}-${data.seq}`);
-	},
-	w: data => {
-		Channel.send('whisper', {
-			rId: Activity.current.id,
-			target: data.target,
-			data: data.data
-		});
-	}
-};
-const CMD_LIST = Object.keys(COMMANDS).sort();
-ipc.on('command', (ev, type, data) => COMMANDS[type](data));
-/**
  * 명령어 사용에 대한 메시지를 출력한다.
  * 
  * @param {*} msg 메시지
@@ -553,27 +470,27 @@ function processMessage(data, prev, saveId){
 	switch(data.type){
 		case "text": content = `
 			${cUser(data.user)}
-			<div class="actt-body">${data.preMessage || ''}${processText(data.message)}</div>
+			<div class="actt-body">${data.preMessage || ''}${produceText(data.message)}</div>
 			`;
 			break;
 		case "image": content = `
 			${cUser(data.user)}
 			<div class="actt-body">
-				<img src="${data.thumb || (data.image + "?type=w128")}" onload="processImage(this, '${data.image}', ${isBottom});"/>
+				<img src="${data.thumb || (data.image + "?type=w128")}" onerror="$(this).replaceWith(FA('exclamation-circle'));" onload="processImage(this, '${data.image}', ${isBottom});"/>
 			</div>
 			`;
 			break;
 		case "sticker":
 			if(!data.image){
 				data._sticker = data.message.split('-');
-				data._sticker = `https://ssl.phinf.net/gfmarket/${data._sticker[0]}/original_${data._sticker[1]}.png`;
+				data._sticker = STICKER_URL(data._sticker[0], data._sticker[1]);
 				data.xxhdpi = data._sticker + "?type=p100_100";
 				data.image = data._sticker + "?type=p50_50";
 			}
 			content = `
 			${cUser(data.user)}
 			<div class="actt-body">
-				<img src="${data.image}" onload="processImage(this, '${data.xxhdpi}', ${isBottom});"/>
+				<img src="${data.image}" onerror="$(this).replaceWith(FA('exclamation-circle'));" onload="processImage(this, '${data.xxhdpi}', ${isBottom});"/>
 			</div>
 			`;
 			break;
@@ -729,23 +646,6 @@ function processWhisper(data){
 	if(notiTitle) if(!$window.isFocused() || $window.isMinimized()) notify(notiTitle, data.data);
 }
 /**
- * 불러온 텍스트 정보를 처리한다.
- * 
- * @param {string} text 텍스트
- * @returns {string} 처리된 텍스트
- */
-function processText(text){
-	const TABLE = {
-		'<': "&lt;", '>': "&gt;", '&': "&amp;", '\n': "<br>"
-	};
-	
-	if(OPT['use-jom']) return JOM.parse(text
-		.replace(/(https?:\/\/.+?\.[^)]+?)(?:\s|<br>|$)/gi, (v, p1) => `[${p1}](${p1})`));
-	return text
-		.replace(/<|>|&|\n/g, v => TABLE[v])
-		.replace(/(https?:\/\/.+?\..+?)(?:\s|<br>|$)/gi, (v, p1) => `<a href="#" onclick="shell.openExternal('${p1}');">${p1}</a>`);
-}
-/**
  * 불러온 이미지 정보를 처리한다.
  * 
  * @param {HTMLImageElement} img 이미지 DOM 객체
@@ -756,6 +656,44 @@ function processImage(img, source, downScroll){
 	let $img = $(img).on('click', e => popupImage(source));
 
 	if(downScroll) $img.parent().parent().parent().get(0).scrollTop += img.height;
+}
+/**
+ * 불러온 텍스트 정보를 가공한다.
+ * 
+ * @param {string} text 텍스트
+ * @returns {string} 가공된 텍스트
+ */
+function produceText(text){
+	const TABLE = {
+		'<': "&lt;", '>': "&gt;", '&': "&amp;", '\n': "<br>", ' ': "&nbsp;"
+	};
+	
+	if(OPT['use-jom']) return JOM.parse(text
+		.replace(/ /g, "&nbsp;")
+		.replace(/\n/g, "\n\n")
+		.replace(/(https?:\/\/.+?\.[^)]+?)(?:\s|<br>|$)/gi, (v, p1) => `[${p1}](${p1})`));
+	return text
+		.replace(/<|>|&|\n| /g, v => TABLE[v])
+		.replace(/(https?:\/\/.+?\..+?)(?:\s|<br>|$)/gi, (v, p1) => `<a href="#" onclick="shell.openExternal('${p1}');">${p1}</a>`);
+}
+/**
+ * 주어진 명령어의 한 인자에 대한 하위 힌트를 가공한다.
+ * 
+ * @param {string} cmd 명령어
+ * @param {number} index 인자 번호(0은 명령어)
+ * @param {string} value 현재 인자 값
+ * @param {string[]} argv 전체 명령어 배열
+ * @returns {string} 가공된 하위 힌트
+ */
+function produceSubhint(cmd, index, value, argv){
+	let lister = CMD_SUBHINT[cmd];
+	let R = "";
+
+	$data._cmdArgIndex = index;
+	if(!lister) return "";
+	if(!lister[index]) return "";
+
+	return lister[index](value, argv);
 }
 /**
  * 메시지를 전송한다.
@@ -808,7 +746,10 @@ function sendMessage(type, room, data){
 function setCommandHint(visible, text, chosen){
 	let reg;
 	let argv;
+	let cArg;
 
+	$data._shIndex = -1;
+	delete $data._subhint;
 	if(!text){
 		$data._hint = visible = false;
 		$stage.cmdHint.hide();
@@ -829,11 +770,13 @@ function setCommandHint(visible, text, chosen){
 
 		if(!chosen && list.length == 1){
 			chosen = list[0];
+			cArg = argv.length - 1;
 		}
 		if(chosen){
 			res = res
 				.replace(`>%${chosen}%`, ` style="display: block;">${L('cmdx-' + chosen)}`)
 				.replace("chint-" + chosen, `chint-${chosen}" class="chint-chosen`);
+			if(cArg) res += produceSubhint(list[0], cArg, argv[cArg], argv);
 		}
 		$stage.cmdHint.show().html(res);
 		$data._hList = list;

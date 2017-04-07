@@ -83,7 +83,9 @@ function notify(title, msg){
 	let $window = Remote.getCurrentWindow();
 
 	$window.flashFrame(true);
-	$window.once('focus', e => $window.flashFrame(false));
+	$window.once('focus', e => {
+		if(!$window.isDestroyed) $window.flashFrame(false)
+	});
 	new Notification(`${title} - ${L('title')}`, {
 		icon: "img/logo.ico",
 		body: msg

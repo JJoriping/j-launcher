@@ -4,7 +4,8 @@
   "description": "Client for Naver cafe chatting",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "npm run bundle && electron .",
+    "bundle": "node ./lib/jbundle.js",
     "package-win": "electron-packager . j-launcher --prune --overwrite --platform=win32 --ignore auth\\.json --ignore clipboard\\.png --out ./build",
     "package-linux": "electron-packager . j-launcher --prune --overwrite --platform=linux --ignore auth\\.json --ignore clipboard\\.png --out ./build",
     "package-mac": "electron-packager . j-launcher --prune --overwrite --platform=darwin --ignore auth\\.json --ignore clipboard\\.png --out ./build",
@@ -27,5 +28,6 @@
     "electron-pug": "^1.5.1",
     "node-ncc-es6": "^0.3.1",
     "request": "^2.81.0"
-  }
+  },
+  "devDependencies": {}
 }

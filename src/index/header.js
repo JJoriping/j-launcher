@@ -26,6 +26,7 @@ const CHANNEL_MENU = Remote.Menu.buildFromTemplate([
 const CHANNEL_HOST = "jjo.kr";
 const ACT_OPENED = "opened";
 const HISTORY_MAX = 100;
+const STICKER_URL = (pack, seq, qs) => `https://ssl.phinf.net/gfmarket/${pack}/original_${seq}.png${qs ? `?${qs}` : ""}`;
 
 /**
  * 액티비티를 정의한다.
@@ -179,7 +180,12 @@ class Activity{
 				break;
 			case 'Enter':
 				if(!e.shiftKey){
-					if($data._hint && $data._hIndex >= 0){
+					if($data._shIndex >= 0){
+						let argv = this.$stage.chat.val().split(' ');
+
+						argv[$data._cmdArgIndex] = $data._subhint[$data._shIndex];
+						this.$stage.chat.val(argv.join(' ') + " ");
+					}else if($data._hint && $data._hIndex >= 0){
 						this.$stage.chat.val("/" + $data._hList[$data._hIndex] + " ");
 					}else{
 						this.$stage.send.trigger('click');
@@ -197,16 +203,35 @@ class Activity{
 			case 'ArrowUp':
 			case 'ArrowDown':
 				if($data._hint){
-					if($data._hIndex == -1){
-						$data._hIndex = 0;
+					let isSub = false;
+					let iKey, iList;
+					
+					if($data._subhint){
+						isSub = true;
+						iKey = '_shIndex';
+						iList = '_subhint';
+					}else{
+						iKey = '_hIndex';
+						iList = '_hList';
+					}
+					if($data[iKey] == -1){
+						$data[iKey] = 0;
 					}else{
 						if(e.key == 'ArrowUp'){
-							if(!$data._hIndex--) $data._hIndex = $data._hList.length - 1;
+							if(!$data[iKey]--) $data[iKey] = $data[iList].length - 1;
 						}else{
-							if(++$data._hIndex == $data._hList.length) $data._hIndex = 0;
+							if(++$data[iKey] == $data[iList].length) $data[iKey] = 0;
 						}
 					}
-					setCommandHint(true, e.currentTarget.value, $data._hList[$data._hIndex]);
+					if(isSub){
+						$(".chint-sub-item.chint-chosen").removeClass("chint-chosen");
+						let vp = $(`#chint-sub-${$data._subhint[$data._shIndex]}`).addClass("chint-chosen")[0].getBoundingClientRect();
+						let di1 = window.innerHeight - this.$stage.chat.height() - vp.height;
+						let di2 = di1 + vp.height - $stage.cmdHint.height();
+
+						if(vp.top > di1) $stage.cmdHint[0].scrollTop += vp.top - di1;
+						else if(vp.top < di2) $stage.cmdHint[0].scrollTop += vp.top - di2;
+					}else setCommandHint(true, e.currentTarget.value, $data[iList][$data[iKey]]);
 					e.preventDefault();
 				}else{
 					if(e.key == 'ArrowUp') Activity.current.history.up();
