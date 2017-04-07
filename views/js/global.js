@@ -24,6 +24,17 @@ function L(key){
 		.replace(/FA\{(.+?)\}/g, (v, p1) => FA(p1));
 	return "#" + key;
 }
+/**
+ * 주어진 식별자에 대응되는 FontAwesome 그림 표현을 가져온다.
+ * 
+ * @param {string} key 식별자
+ * @param {boolean} afterSpace true일 때 그림 표현 뒤에 공백(&nbsp;) 문자를 추가한다.
+ * @returns {string} FontAwesome 그림 표현
+ */
+function FA(key, afterSpace){
+	return `<i class="fa fa-${key}"></i>${afterSpace ? "&nbsp;" : ""}`;
+}
+
 $(() => {
 	$(".diag-title").on('mousedown', e => {
 		$data.$drag = $(e.currentTarget).parent().parent();
@@ -41,7 +52,10 @@ ipc.on('alert', (ev, msg) => {
 	alert(msg);
 });
 ipc.on('dialog', (ev, type) => {
-	return $dialog(type, true).toggle();
+	let $R = $dialog(type, true).toggle();
+
+	if($R.is(':visible')) $R.trigger('appear');
+	return $R;
 });
 ipc.on('external', (ev, href, isLocal) => {
 	if(isLocal) shell.openItem(href);
@@ -51,16 +65,33 @@ ipc.on('log', (ev, msg) => {
 	console.log(msg);
 });
 
+$data.appMenuTable = {};
+Remote.Menu.getApplicationMenu().items.forEach(v => {
+	let t1 = v.label;
+
+	v.submenu.items.forEach(w => {
+		let t2 = w.label;
+
+		$data.appMenuTable[`${t1}/${t2}`] = w;
+	});
+});
 /**
- * 주어진 식별자에 대응되는 FontAwesome 그림 표현을 가져온다.
+ * 주어진 식별자로부터 메뉴 항목을 구한다.
  * 
- * @param {string} key 식별자
- * @param {boolean} afterSpace true일 때 그림 표현 뒤에 공백(&nbsp;) 문자를 추가한다.
- * @returns {string} FontAwesome 그림 표현
+ * @param {string} id 메뉴 식별자
+ * @returns {Electron.MenuItem} 메뉴 항목
  */
-function FA(key, afterSpace){
-	return `<i class="fa fa-${key}"></i>${afterSpace ? "&nbsp;" : ""}`;
+function getAppMenu(id){
+	let path = "";
+	let key = id.split('-').reduce((pv, v) => {
+		path += "-" + v;
+
+		return pv.concat([ L(`menu${path}`) ]);
+	}, []).join('/');
+
+	return $data.appMenuTable[key];
 }
+
 /**
  * 프로그램의 설정 값을 변경하고 파일로 저장한다.
  * 값이 할당되지 않은 경우 해당 정보를 지운다.

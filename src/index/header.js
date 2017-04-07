@@ -224,13 +224,15 @@ class Activity{
 						}
 					}
 					if(isSub){
-						$(".chint-sub-item.chint-chosen").removeClass("chint-chosen");
-						let vp = $(`#chint-sub-${$data._subhint[$data._shIndex]}`).addClass("chint-chosen")[0].getBoundingClientRect();
-						let di1 = window.innerHeight - this.$stage.chat.height() - vp.height;
-						let di2 = di1 + vp.height - $stage.cmdHint.height();
+						if($data._subhint[$data._shIndex] !== undefined){
+							$(".chint-sub-item.chint-chosen").removeClass("chint-chosen");
+							let vp = $(`#chint-sub-${$data._subhint[$data._shIndex]}`).addClass("chint-chosen")[0].getBoundingClientRect();
+							let di1 = window.innerHeight - this.$stage.chat.height() - vp.height;
+							let di2 = di1 + vp.height - $stage.cmdHint.height();
 
-						if(vp.top > di1) $stage.cmdHint[0].scrollTop += vp.top - di1;
-						else if(vp.top < di2) $stage.cmdHint[0].scrollTop += vp.top - di2;
+							if(vp.top > di1) $stage.cmdHint[0].scrollTop += vp.top - di1;
+							else if(vp.top < di2) $stage.cmdHint[0].scrollTop += vp.top - di2;
+						}
 					}else setCommandHint(true, e.currentTarget.value, $data[iList][$data[iKey]]);
 					e.preventDefault();
 				}else{

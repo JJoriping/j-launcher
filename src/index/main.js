@@ -1,7 +1,3 @@
-const OPT_KEYS = [
-	"auto", "block", "block-log", "channel-pw", "idle-time", "max-chat", "mute",
-	"no-ask-upload", "prev-per-req", "status-list", "viewer-resize"
-];
 let $stage;
 let $sound;
 
@@ -18,12 +14,25 @@ $(() => {
 			uploadOK: $("#diag-upload-ok"),
 			ceOK: $("#diag-ce-ok"),
 			statusList: $("#diag-status-list"),
-			statusOK: $("#diag-status-ok")
+			statusOK: $("#diag-status-ok"),
+			bw: {
+				_: $("#diag-bw"),
+				bTable: $("#diag-bw-black"),
+				bAdd: $("#diag-bw-black-add"),
+				bCount: $("#diag-bw-black-count"),
+				wTable: $("#diag-bw-white"),
+				wAdd: $("#diag-bw-white-add"),
+				wCount: $("#diag-bw-white-count"),
+				ok: $("#diag-bw-ok")
+			}
 		},
 		actTab: $("#act-tab"),
 		acts: $("#activities"),
 		cmdHint: $("#command-hint")
 	};
+	// 기존 설정 반영
+	if(getAppMenu("chat-time").checked) onEvent(null, 'chat-time');
+	if(getAppMenu("chat-list").checked) onEvent(null, 'chan-list');
 	// 소리 등록
 	$sound = {};
 	[
@@ -130,6 +139,88 @@ $(() => {
 		Channel.send('status', { status: $stage.diag.statusList.val() });
 		$dialog('status').hide();
 	});
+	// 대화 흑백 설정 상자
+	$stage.diag.bw._.on('appear', e => {
+		$data._bw_black = OPT['black'].map(v => v);
+		$data._bw_white = OPT['white'].map(v => v);
+		$stage.diag.bw._.trigger('change');
+	}).on('change', e => {
+		let putter;
+
+		[ 'black', 'white' ].forEach(key => {
+			let head = key.charAt();
+			let $table = $stage.diag.bw[head + 'Table'];
+			let arr = $data['_bw_' + key];
+
+			$table.empty();
+			$stage.diag.bw[head + 'Count'].html(L('diag-bw-count', arr.length));
+			arr.forEach((v, i) => {
+				$table.append(produceBWItem(key, i, v));
+			});
+		});
+		if($data._bwEdit){
+			$("#diag-bw-ti-" + $data._bwEdit).children("div").trigger('click');
+		}
+		function produceBWItem(type, i, rx){
+			let onClick = `
+				$data._bwEdit = this.parentNode.id.slice(11).split('-');
+				this.parentNode.className = 'diag-bw-table-item diag-bw-ti-edit';
+				$(this.parentNode).children('input').focus().trigger('keyup');
+			`;
+			let onBlur = `
+				if(this.value) $data['_bw_' + $data._bwEdit[0]][$data._bwEdit[1]] = this.value;
+				else $data['_bw_' + $data._bwEdit[0]].splice($data._bwEdit[1], 1);
+				$('.diag-bw-filter').removeClass('diag-bw-filter');
+				delete $data._bwEdit;
+				setTimeout(() => $stage.diag.bw._.trigger('change'), 1);
+			`;
+			let onChange = `
+				let rx;
+
+				$('.diag-bw-filter').removeClass('diag-bw-filter');
+				if(this.value){
+					try{ rx = new RegExp(this.value); }
+					catch(e){ return; }
+					if(rx) $('.act-talk').each((i, o) => {
+						let $o = $(o);
+						let id = $o.children('.actt-user').attr('title');
+						let content;
+						
+						if(!id) return;
+						id = id.match(/\\((.+)\\)$/)[1];
+						content = id + ': ' + $o.children('.actt-body').text();
+						
+						if(content.match(rx)) $o.addClass('diag-bw-filter');
+					});
+				}
+				if(event.which == 13) this.onBlur();
+			`;
+			let onRemove = `
+				$data._bw_${type}.splice(${i}, 1);
+				$stage.diag.bw._.trigger('change');
+			`;
+
+			return `<div id="diag-bw-ti-${type}-${i}" class="diag-bw-table-item">
+				<div class="diag-bw-ti-content" onclick="${onClick}">${rx.replace(/</g, "&lt;")}</div>
+				<input id="diag-bw-tiv-${type}-${i}" class="diag-bw-ti-content" value="${rx}" placeholder="${L('diag-bw-placeholder')}" onblur="${onBlur}" onkeyup="${onChange}"/>
+				<button class="diag-bw-action" onclick="${onRemove}">${FA('remove')}</button>
+			</div>`;
+		}
+	});
+	$stage.diag.bw.bAdd.on('click', e => {
+		$data._bwEdit = 'black-' + ($data._bw_black.push("") - 1);
+		$stage.diag.bw._.trigger('change');
+	});
+	$stage.diag.bw.wAdd.on('click', e => {
+		$data._bwEdit = 'white-' + ($data._bw_white.push("") - 1);
+		$stage.diag.bw._.trigger('change');
+	});
+	$stage.diag.bw.ok.on('click', e => {
+		if(document.activeElement.className == "diag-bw-ti-content") return;
+		setOpt('black', $data._bw_black);
+		setOpt('white', $data._bw_white);
+		$dialog('bw').hide();
+	});
 	// 특수 액티비티 등록
 	$data.acts = {};
 	$data.currentAct = ACT_OPENED;
@@ -167,75 +258,6 @@ function command(msg, rId, group, addPre){
 	if(group) $R.addClass(`act-talk-${group}`);
 	return $R;
 }
-ipc.on('event', (ev, type, data) => {
-	switch(type){
-		case 'login-ok':
-			$data.myInfo = data;
-			$stage.diag.loginOK.prop('disabled', false);
-			notify(L('login-ok'));
-			$dialog('login').hide();
-			renderMyCafes();
-			ipc.send('cojer', 'MyRoomList');
-			break;
-		case 'login-no':
-			$stage.diag.loginOK.prop('disabled', false);
-			$stage.diag.loginOut.css('color', "red").html(data);
-			notify(L('login-no'), data);
-			if(data.indexOf("img") != -1){
-				$data._ckey = data.match(/key=(\w+)/)[1];
-				$stage.diag.loginCaptcha.show();
-			}
-			break;
-		case 'logout':
-			setOpt('auto');
-			setOpt('channel-pw');
-			alert(L('logout'));
-			break;
-		case 'open-rooms':
-			renderOpenRooms(data);
-			break;
-		case 'my-rooms':
-			renderMyRooms(data);
-			if(localStorage.hasOwnProperty('recentAct')){
-				setActivity(localStorage.getItem('recentAct'));
-			}
-			if(OPT['channel-pw']) Channel.init($data.myInfo.profile.id, OPT['channel-pw']);
-			break;
-		case 'sess-msg':
-			processMessage(data, false, true);
-			break;
-		case 'sess-err':
-			console.error(data);
-			break;
-		case 'sess-progress':
-			processProgress(data);
-			break;
-		case 'prev-chat':
-			data.reverse().forEach(v => processMessage(v, true));
-			break;
-		case 'chan-list':
-			$stage.acts.toggleClass("channel-list-collapsed");
-			break;
-		case 'chat-image':
-			Activity.current.$stage.board.find("img:last").trigger('click');
-			break;
-		case 'error':
-			error(data.code, data.msg);
-			break;
-		case 'set-chat':
-			Activity.current.$stage.chat.val(data.data);
-			break;
-		case 'join':
-			renderMyRooms([ data ], true);
-			setActivity(data.id.replace(":", "-"));
-			saveTabOrdinal();
-			break;
-		case 'quit':
-			removeActivity(data.id.replace(":", "-"));
-			saveTabOrdinal();
-			break;
-	}
-});
 
 /**
  * 새 액티비티를 생성하고 탭을 갱신한다.
@@ -453,19 +475,26 @@ function processMessage(data, prev, saveId){
 	}
 	let $board = act.$stage.board, board = $board.get(0);
 	let isMe = data.user.id == $data.myInfo.profile.id;
+	let isWhite = false;
 	let isBottom = checkScrollBottom(board);
 	let now = new Date(data.time);
 	let $talk;
-	let content;
+	let content = `${data.user.id}: ${data.message}`;
 
 	if(isMe) data.user = $data.myInfo.profile;
-	else if(checkBlock(`${data.user.id}: ${data.message}`)){
-		if(!prev) ipc.send('block', {
-			id: data.user.id,
-			content: data.message,
-			time: now
-		});
-		return;
+	else{
+		if(checkBW(OPT['white'], content)){
+			isWhite = true;
+			if(!prev) notify(L('on-white', data.user.nickname), data.message);
+		}
+		if(checkBW(OPT['black'], content)){
+			if(!prev) ipc.send('black', {
+				id: data.user.id,
+				content: data.message,
+				time: now
+			});
+			return;
+		}
 	}
 	switch(data.type){
 		case "text": content = `
@@ -547,6 +576,8 @@ function processMessage(data, prev, saveId){
 			$data._$pending.remove();
 			delete $data._$pending;
 		}
+	}else if(isWhite){
+		$talk.addClass("act-white-talk");
 	}
 	if(isBottom || isMe){
 		board.scrollTop = board.scrollHeight - board.clientHeight;
@@ -667,14 +698,20 @@ function produceText(text){
 	const TABLE = {
 		'<': "&lt;", '>': "&gt;", '&': "&amp;", '\n': "<br>", ' ': "&nbsp;"
 	};
+	let R;
 	
-	if(OPT['use-jom']) return JOM.parse(text
+	if(OPT['use-jom']) R = JOM.parse(text
 		.replace(/ /g, "&nbsp;")
 		.replace(/\n/g, "\n\n")
 		.replace(/(https?:\/\/.+?\.[^)]+?)(?:\s|<br>|$)/gi, (v, p1) => `[${p1}](${p1})`));
-	return text
+	else R = text
 		.replace(/<|>|&|\n| /g, v => TABLE[v])
 		.replace(/(https?:\/\/.+?\..+?)(?:\s|<br>|$)/gi, (v, p1) => `<a href="#" onclick="shell.openExternal('${p1}');">${p1}</a>`);
+	
+	if(OPT['youtube-view']) R = R
+		.replace(/<a\s+.+?onclick="shell\.openExternal\('https:\/\/(?:\w+?\.youtube\.com\/watch\?v=|youtu\.be\/)(.+?)(?:&.+)?'\);".*?>.+?<\/a>/g, (v, p1) => `${v}<iframe src="https://www.youtube.com/embed/${p1}" allowfullscreen frameborder="0"></iframe>`);
+
+	return R;
 }
 /**
  * 주어진 명령어의 한 인자에 대한 하위 힌트를 가공한다.
@@ -687,10 +724,13 @@ function produceText(text){
  */
 function produceSubhint(cmd, index, value, argv){
 	let lister = CMD_SUBHINT[cmd];
+	let len;
 	let R = "";
 
 	$data._cmdArgIndex = index;
 	if(!lister) return "";
+	len = lister.length;
+	if(lister[len - 2] === true && index >= len - 2) index = len - 1;
 	if(!lister[index]) return "";
 
 	return lister[index](value, argv);
@@ -858,16 +898,14 @@ function checkIdle(){
 	}
 }
 /**
- * 차단 대상인 채팅인지 검사한다.
+ * 풀에 포함되는 채팅인지 검사한다.
  * 
- * @param {string} serial 채팅 구문. "(아이디): (내용)" 꼴로 주어진다.
- * @returns {boolean} 차단 대상인 경우 true
+ * @param {string[]} pool 대상을 검사할 문자열을 담은 배열
+ * @param {string} serial 문맥. "(아이디): (내용)" 꼴로 주어진다.
+ * @returns {boolean} 포함되는 경우 true
  */
-function checkBlock(serial){
-	let list, i;
-	
-	list = OPT['block'];
-	for(i in list) if(serial.match(new RegExp(list[i]))) return true;
+function checkBW(pool, serial){
+	for(let i in pool) if(serial.match(new RegExp(pool[i]))) return true;
 
 	return false;
 }

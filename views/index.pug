@@ -57,6 +57,23 @@ block Jungle
 				option(value='afk')= L('diag-status-afk')
 		div.diag-bar.diag-tail
 			button.ok-button#diag-status-ok= L('OK')
+	+Dialog('bw', 500, 300)
+		div.diag-bar
+			label.diag-bw-label(style='height: 30px;')!= L('diag-bw-tip')
+		div.diag-bar
+			each v in [ "black", "white" ]
+				div(style='width: calc(50% - 4px); margin: 2px;')
+					label.diag-bw-label(style='font-weight: bold;')= L('diag-bw-' + v)
+					div.diag-bw-table(id='diag-bw-' + v)
+					div.diag-bw-menu
+						label(id='diag-bw-' + v + '-count')
+						button.diag-bw-action(id='diag-bw-' + v + '-add')
+							+FA('plus')
+		div.diag-bar.diag-tail
+			button.ok-button#diag-bw-ok= L('OK')
+	+Dialog('macro', 400, 400)
+		div.diag-bar.diag-tail
+			button.ok-button#diag-macro-ok= L('OK')
 	div#command-hint
 
 block Middle

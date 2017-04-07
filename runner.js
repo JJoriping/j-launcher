@@ -7,9 +7,14 @@ const CoJer = require("./lib/cojer.js");
 const SCRIPTS = {
 	'account-login': () => exports.send('dialog', "login"),
 	'account-logout': () => CoJer.requestLogout(exports),
+
 	'chat-status': () => exports.send('dialog', "status"),
 	'chat-list': () => exports.send('event', "chan-list"),
 	'chat-image': () => exports.send('event', "chat-image"),
+	'chat-time': () => exports.send('event', "chat-time"),
+	'chat-bw': () => exports.send('dialog', "bw"),
+	'chat-macro': () => exports.send('dialog', "macro"),
+
 	'program-o-settings': () => {
 		exports.send('command', "help_opt");
 		exports.send('external', global.OPT_FILE, true)
@@ -26,6 +31,7 @@ const SCRIPTS = {
 	},
 	'program-blog': () => exports.send('external', "http://blog.jjo.kr/"),
 	'program-repo': () => exports.send('external', "https://github.com/JJoriping/j-launcher"),
+
 	'exit': () => process.exit(0)
 };
 
@@ -55,6 +61,22 @@ exports.MAIN_MENU = [
 				accelerator: "CmdOrCtrl+Space",
 				click: () => exports.run("chat-image")
 			},
+			{
+				type: "checkbox",
+				label: L('menu-chat-time'),
+				accelerator: "CmdOrCtrl+H",
+				click: () => exports.run("chat-time")
+			},
+			{
+				label: L('menu-chat-bw'),
+				accelerator: "CmdOrCtrl+B",
+				click: () => exports.run("chat-bw")
+			},
+			{
+				label: L('menu-chat-macro'),
+				accelerator: "CmdOrCtrl+M",
+				click: () => exports.run("chat-macro")
+			},
 			{ type: "separator" },
 			{
 				label: L('menu-chat-status'),
@@ -62,6 +84,7 @@ exports.MAIN_MENU = [
 				click: () => exports.run("chat-status")
 			},
 			{
+				type: "checkbox",
 				label: L('menu-chat-list'),
 				accelerator: "CmdOrCtrl+`",
 				click: () => exports.run("chat-list")
@@ -121,8 +144,8 @@ CoJer.log = msg => {
 ipcMain.on('opt', (e, key, value) => {
 	CoJer.setOpt(e.sender, key, value);
 });
-ipcMain.on('block', (e, data) => {
-	CoJer.setBlockLog(e.sender, data);
+ipcMain.on('black', (e, data) => {
+	CoJer.setBlackLog(e.sender, data);
 });
 ipcMain.on('cojer', (e, type, opts) => {
 	let F = CoJer[`request${type}`];

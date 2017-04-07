@@ -6,8 +6,9 @@ body{
 	.dark-body{ opacity: 0.7; }
 button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit; }
 	button:focus, input:focus, select:focus, textarea:focus{ outline: 1px solid skyblue; }
-iframe{ width: 100%; height: 40vh; max-width: 800px; }
-p{ margin: 0px; }
+iframe{ width: 100%; height: 36vh; max-width: 600px; min-height: 240px; }
+p, pre{ display: inline; margin: 0px; }
+	p::after{ display: block; content: ""; }
 ol, ul{ margin: 2px; }
 blockquote{ display: inline; padding-left: 4px; border-left: 4px solid gray; margin: 2px; }
 .ellipse{
@@ -54,6 +55,48 @@ blockquote{ display: inline; padding-left: 4px; border-left: 4px solid gray; mar
 			.diag-tail>button{ float: right; padding: 2px 0px; margin: 0px 1px; width: 80px; }
 			.ok-button{ color: royalblue; background-color: lightskyblue; }
 			.diag-tail>button:disabled{ color: gray; background-color: #AAA; }
+/* 대화 상자 - bw */
+#diag-bw .diag-bar div{ float: left; }
+	.diag-bw-label{
+		float: left;
+		width: 100% !important;
+		height: 15px;
+		font-size: 11px;
+		text-align: center;
+	}
+	.diag-bw-table{
+		width: 100%;
+		height: 175px;
+		overflow-y: scroll;
+		background-color: #EEE;
+	}
+		.diag-bw-table-item{ margin: 1px 0px; box-shadow: 0px 1px 1px lightgray; }
+		.diag-bw-table-item>input{ display: none; }
+		.diag-bw-ti-edit>div{ display: none; }
+		.diag-bw-ti-edit>input{ display: block; }
+		.diag-bw-ti-content{
+			float: left;
+			width: 200px;
+			height: 20px;
+			box-sizing: border-box;
+		}
+	.diag-bw-menu{
+		width: 100%;
+		height: 20px;
+		background-color: whitesmoke;
+	}
+	.diag-bw-action{
+		float: right;
+		width: 20px;
+		height: 16px;
+		margin: 2px;
+		background: none;
+	}
+		.diag-bw-action:hover{ background-color: white; }
+	.diag-bw-filter{
+		animation: FilterNotify 2s infinite ease;
+	}
+
 /* 명령어 힌트 */
 #command-hint{
 	position: fixed;
@@ -72,9 +115,10 @@ blockquote{ display: inline; padding-left: 4px; border-left: 4px solid gray; mar
 	.chint-usage{ color: whitesmoke; }
 	.chint-expl{ display: none; color: lightgray; }
 	.chint-sub-list{
+		padding-left: 3px;
 		border-left: 4px solid gray;
 		margin-left: 20px;
-		color: #AAA;
+		color: lightgray;
 	}
 	.chint-sub-block{
 		float: left;
@@ -130,6 +174,8 @@ blockquote{ display: inline; padding-left: 4px; border-left: 4px solid gray; mar
 	.channel-list-collapsed .act-board{ width: 100% !important; }
 	.channel-list-collapsed .act-list{ display: none; }
 	.channel-list-collapsed .act-ghost{ width: 100% !important; }
+	.time-always-visible .actt-stamp{ display: block; margin-left: 0px; background-color: initial; }
+	.time-always-visible .actt-body{ width: calc(100% - 200px) !important; }
 .activity{
 	display: none;
 	float: left;
@@ -171,6 +217,7 @@ blockquote{ display: inline; padding-left: 4px; border-left: 4px solid gray; mar
 			.act-my-talk{ background-color: #EEE; }
 				.act-talk-cmd-send{ color: darkgreen; }
 				.act-talk-cmd-receive{ color: mediumblue; }
+			.act-white-talk{ background-color: cornsilk; }
 			.act-talk-last{ padding: 0px; border-top: 1px dashed gray; margin-top: 1px; }
 			.actt-user{ width: 120px; }
 				.actt-user-image{ width: 15px; height: 15px; margin: 0px 2px; background-size: 100% 100%; }
@@ -253,4 +300,9 @@ blockquote{ display: inline; padding-left: 4px; border-left: 4px solid gray; mar
 	0%{ background-color: darkgreen; }
 	50%{ background-color: green; }
 	100%{ background-color: darkgreen; }
+}
+@keyframes FilterNotify{
+	0%{ opacity: 1; background-color: initial; }
+	50%{ opacity: 0.7; background-color: lightskyblue; }
+	100%{ opacity: 1; background-color: initial; }
 }

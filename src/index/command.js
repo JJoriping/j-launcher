@@ -1,4 +1,12 @@
 /**
+ * 유효한 설정의 목록을 나타낸다.
+ */
+const OPT_KEYS = [
+	"auto", "black", "black-log", "channel-pw", "idle-time", "max-chat", "mute",
+	"no-ask-upload", "prev-per-req", "status-list", "use-jom",
+	"viewer-resize", "white", "youtube-view"
+];
+/**
  * 명령어의 실행을 담당하는 상수 객체이다.
  */
 const COMMANDS = {
@@ -80,22 +88,57 @@ const COMMANDS = {
 	}
 };
 /**
- * 명령어의 하위 힌트 도출을 담당하는 상수 객체이다.
+ * 표준 하위 힌트 도출 함수를 생성한다.
+ * 
+ * @param {Function} poolBuilder 검색 배열을 생성시키는 함수
+ * @param {Function} renderer 필터링된 결과에 대해 DOM 그리기 작업을 수행하는 함수
+ * @returns {Function} 생성된 하위 힌트 도출 함수
+ */
+const CMD_STD_SUBHINT = function(poolBuilder, renderer){
+	let my = this;
+
+	this.styler = v => v.replace(this.data, `<label class="chint-match">${this.data}</label>`);
+	return (data, argv) => {
+		let R = "";
+		let pool = poolBuilder();
+
+		this.data = data;
+		this.argv = argv;
+		$data._subhint = pool.filter(v => v.indexOf(data) != -1);
+		$data._subhint.forEach(v => R += `
+		<div id="chint-sub-${v}" class="chint-sub-item chint-sub-list">
+			${renderer.call(my, v, this.styler)}
+		</div>`);
+		return R;
+	};
+};
+/**
+ * 명령어의 하위 힌트 도출 함수들을 포함하는 상수 객체이다.
  */
 const CMD_SUBHINT = {
+	set: [
+		null,
+		new CMD_STD_SUBHINT(
+			() => OPT_KEYS,
+			(v, styler) => `${styler(v)}: <label style="color: #AAA;">${
+				L('optx-' + v).match(/<br\/>.+$/)[0].slice(5)
+			}</label>`
+		),
+		true,
+		(data, argv) => LANG['optx-' + argv[1]] ? `<div class="chint-sub-item chint-sub-list">
+			<label class="chint-match">${argv[1]}</label><br/>
+			${L('optx-' + argv[1])}<br/>
+			<label style="color: orange;">${L('opts-current')}: </label>${OPT[argv[1]]}
+		</div>` : ""
+	],
 	sticker: [
 		null,
-		(data, argv) => {
-			let R = "";
-
-			$data._subhint = $data.myInfo.sticker.list.map(v => v.packCode).filter(v => v.indexOf(data) != -1);
-			$data._subhint.forEach(v => {
-				R += `<div id="chint-sub-${v}" class="chint-sub-item chint-sub-list">
-					<img src="${STICKER_URL(v, 'tab_on', "type=m34_29")}" style="vertical-align: middle;"/> ${v.replace(data, `<label class="chint-match">${data}</label>`)}
-				</div>`;
-			});
-			return R;
-		},
+		new CMD_STD_SUBHINT(
+			() => $data.myInfo.sticker.list.map(v => v.packCode),
+			(v, styler) => `
+				<img src="${STICKER_URL(v, 'tab_on', "type=m34_29")}" style="vertical-align: middle;"/> ${styler(v)}
+			`
+		),
 		(data, argv) => {
 			let R = "";
 			let i, len = $data.myInfo.sticker.table[argv[1]];
@@ -116,8 +159,16 @@ const CMD_SUBHINT = {
 			}
 			return R;
 		}
+	],
+	w: [
+		null,
+		new CMD_STD_SUBHINT(
+			() => Activity.current.channel ? Activity.current.channel.list.map(v => v.id) : [],
+			(v, styler) => styler(Activity.current.channel.$list.children(".actli-" + v).attr('title'))
+		)
 	]
 };
 const CMD_LIST = Object.keys(COMMANDS).sort();
 
+CMD_SUBHINT['note'] = CMD_SUBHINT['call'] = CMD_SUBHINT['w'];
 ipc.on('command', (ev, type, data) => COMMANDS[type](data));
