@@ -6,7 +6,9 @@ body{
 	.dark-body{ opacity: 0.7; }
 button, select, textarea{ padding: 0px; border: 0px; margin: 0px; font: inherit; }
 	button:focus, input:focus, select:focus, textarea:focus{ outline: 1px solid skyblue; }
+code{ border-radius: 5px; font-family: Consolas; color: #444; background-color: #DDD; }
 iframe{ width: 100%; height: 36vh; max-width: 600px; min-height: 240px; }
+input{ font: inherit; }
 p, pre{ display: inline; margin: 0px; }
 	p::after{ display: block; content: ""; }
 ol, ul{ margin: 2px; }
@@ -55,254 +57,20 @@ blockquote{ display: inline; padding-left: 4px; border-left: 4px solid gray; mar
 			.diag-tail>button{ float: right; padding: 2px 0px; margin: 0px 1px; width: 80px; }
 			.ok-button{ color: royalblue; background-color: lightskyblue; }
 			.diag-tail>button:disabled{ color: gray; background-color: #AAA; }
-/* 대화 상자 - bw */
-#diag-bw .diag-bar div{ float: left; }
-	.diag-bw-label{
-		float: left;
-		width: 100% !important;
-		height: 15px;
-		font-size: 11px;
-		text-align: center;
-	}
-	.diag-bw-table{
-		width: 100%;
-		height: 175px;
-		overflow-y: scroll;
-		background-color: #EEE;
-	}
-		.diag-bw-table-item{ margin: 1px 0px; box-shadow: 0px 1px 1px lightgray; }
-		.diag-bw-table-item>input{ display: none; }
-		.diag-bw-ti-edit>div{ display: none; }
-		.diag-bw-ti-edit>input{ display: block; }
-		.diag-bw-ti-content{
-			float: left;
-			width: 200px;
-			height: 20px;
-			box-sizing: border-box;
-		}
-	.diag-bw-menu{
-		width: 100%;
-		height: 20px;
-		background-color: whitesmoke;
-	}
-	.diag-bw-action{
+	.diag-action{
 		float: right;
 		width: 20px;
 		height: 16px;
 		margin: 2px;
 		background: none;
 	}
-		.diag-bw-action:hover{ background-color: white; }
-	.diag-bw-filter{
-		animation: FilterNotify 2s infinite ease;
-	}
-
-/* 명령어 힌트 */
-#command-hint{
-	position: fixed;
-	display: none;
-	bottom: 100px;
-	width: calc(100% - 10px);
-	max-height: 50vh;
-	padding: 5px;
-	color: deepskyblue;
-	overflow-y: scroll;
-	background-color: rgba(0, 0, 0, 0.7);
-	z-index: 1;
-}
-	.chint-chosen{ background-color: rgba(255, 255, 255, 0.1); }
-	.chint-match{ font-weight: bold; color: lightskyblue; }
-	.chint-usage{ color: whitesmoke; }
-	.chint-expl{ display: none; color: lightgray; }
-	.chint-sub-list{
-		padding-left: 3px;
-		border-left: 4px solid gray;
-		margin-left: 20px;
-		color: lightgray;
-	}
-	.chint-sub-block{
+		.diag-action:hover{ background-color: white; }
+	.diag-label{
 		float: left;
-		width: 94px;
-		height: 94px;
-		padding: 2px;
-		margin: 1px;
-		color: whitesmoke;
-		text-shadow: 0px 1px 1px black;
+		width: 100% !important;
+		font-size: 11px;
+		text-align: center;
 	}
-		.chint-sub-block.chint-chosen{ border: 1px solid #AAA; margin: 0px; color: yellow; font-size: 15px; }
-/* 탭 */
-#act-tab{
-	position: absolute;
-	width: 100%;
-	height: 30px;
-	overflow: auto;
-	background-color: #333;
-}
-	.at-item{
-		float: left;
-		width: 120px;
-		height: 15px;
-		padding: 5px;
-		margin: 4px 1px 0px 0px;
-		color: #EEE;
-		background-color: #444;
-	}
-		.at-item *{ pointer-events: none; }
-		.at-item:hover{ background-color: #555; }
-		#at-item-opened{ width: initial; color: greenyellow; }
-		.at-current{
-			padding-top: 8px;
-			margin: 2px 1px 0px 0px;
-			color: #444 !important;
-			background-color: #EEE !important;
-		}
-		.at-notify{ animation: ActTabNotify 3s infinite; }
-		.ati-count{
-			float: left;
-			padding: 2px;
-			border-radius: 10px;
-			margin-right: 3px;
-			min-width: 10px;
-			font-size: 11px;
-			text-align: center;
-			background-color: darkred;
-		}
-		.ati-locked{ display: none !important; }
-		.at-item-locked>.ati-locked{ display: initial !important; }
-/* 액티비티 */
-#activities{ position: absolute; top: 30px; width: 100%; height: calc(100% - 30px); }
-	.channel-list-collapsed .act-board{ width: 100% !important; }
-	.channel-list-collapsed .act-list{ display: none; }
-	.channel-list-collapsed .act-ghost{ width: 100% !important; }
-	.time-always-visible .actt-stamp{ display: block; margin-left: 0px; background-color: initial; }
-	.time-always-visible .actt-body{ width: calc(100% - 200px) !important; }
-.activity{
-	display: none;
-	float: left;
-	width: 100%;
-	height: 100%;
-}
-.activity div{ float: left; }
-	.act-menu{
-		width: 100%;
-		height: 19px;
-		border-bottom: 1px solid lightgray;
-		background-color: #EEE;
-	}
-		.act-menu-title{
-			width: calc(100% - 94px);
-			height: 15px;
-			margin: 2px;
-		}
-			.act-menu-title>i{ border-left: 1px solid lightgray; margin: 0px 4px; }
-			.act-menu-prev>i{ transform: translateY(-2px) rotate(90deg); }
-			.actm-title-cafe, .actm-title-attr{ color: #555; }
-		.act-menu>button{
-			float: right;
-			width: 29px;
-			height: 100%;
-			padding-top: 1px;
-			color: #444;
-		}
-			.act-menu>button:disabled{ color: gray; }
-			.act-menu>button:hover{ background-color: whitesmoke; }
-			.act-menu-quit{ background-color: orange; }
-	.act-board{
-		width: calc(100% - 240px);
-		height: calc(100% - 120px);
-		overflow-y: scroll;
-	}
-		.act-talk{ width: 100%; padding: 3px 0px; }
-			.act-pending-talk{ color: gray; }
-			.act-my-talk{ background-color: #EEE; }
-				.act-talk-cmd-send{ color: darkgreen; }
-				.act-talk-cmd-receive{ color: mediumblue; }
-			.act-white-talk{ background-color: cornsilk; }
-			.act-talk-last{ padding: 0px; border-top: 1px dashed gray; margin-top: 1px; }
-			.actt-user{ width: 120px; }
-				.actt-user-image{ width: 15px; height: 15px; margin: 0px 2px; background-size: 100% 100%; }
-			.actt-body{ width: calc(100% - 120px); overflow-wrap: break-word; }
-				.actt-body::before{ content: ":"; float: left; margin: 0px -6px 0px -4px; width: 10px; color: lightgray; }
-				.actt-body>img{ vertical-align: top; }
-				.actt-body>i.fa-exclamation-circle{ color: orange; }
-			.actt-notice{ width: 100%; text-align: center; font-weight: bold; }
-			.actt-stamp{
-				display: none;
-				width: 80px;
-				margin-left: -80px;
-				font-size: 11px;
-				color: gray;
-				text-align: right;
-				background-color: whitesmoke;
-			}
-			.act-talk:hover{ background-color: whitesmoke; }
-			.act-talk-traced{ font-weight: bold; background-color: whitesmoke; }
-			.act-talk:hover>.actt-stamp{ display: block; }
-	.act-ghost{
-		display: none;
-		position: relative;
-		margin-top: -20px;
-		width: calc(100% - 240px);
-		height: 14px;
-		overflow: hidden;
-		color: #EEE;
-		background-color: rgba(0, 0, 0, 0.7) !important;
-	}
-		.act-ghost>.actt-stamp{ background-color: initial; }
-	.act-list{
-		width: 240px;
-		height: calc(100% - 120px);
-		overflow-y: scroll;
-	}
-		.act-list-closed{ background-color: #DDD; }
-		.act-list-item{ width: 100%; padding: 2px 0px; }
-			.act-list-item-status{ width: 11px; height: 11px; border-radius: 10px; margin: 2px; }
-				.actli-status-online{ background-color: forestgreen; }
-				.actli-status-custom{ background-color: orange; }
-				.actli-status-afk{ background-color: darkred; }
-			.act-list-item-name{ width: calc(100% - 59px); }
-				.act-list-item-id{ color: gray; }
-			.act-list-item-exordial{ width: 40px; }
-			.act-list-item-me{ font-weight: bold; }
-			.act-list-item:hover{ background-color: #EEE; }
-	.act-me{ width: 100%; height: 99px; border-top: 1px solid lightgray; }
-		.act-chat{ float: left; padding: 5px; width: calc(100% - 70px); height: calc(100% - 10px); resize: none; background-color: whitesmoke; }
-		.act-me>button{ float: left; width: 60px; height: 50%; border-bottom: 1px solid lightgray; font-size: 20px; }
-			.act-me>button:hover{ background-color: #EEE; }
-/* 특수 액티비티 - 공개 채팅방(OpenRoom) */
-#act-or-cafe-list{
-	width: 100%;
-	height: 30px;
-	padding: 5px;
-	background-color: #EEE;
-}
-#act-or-room-list{
-	width: 100%;
-	height: calc(100% - 30px);
-	overflow-y: scroll;
-}
-	.act-or-room-count{ margin: 2px 0px; font-weight: bold; }
-	.act-or-room{
-		width: calc(100% - 10px);
-		padding: 5px;
-		margin-top: 4px;
-		cursor: pointer;
-		background-color: #EEE;
-	}
-		.act-or-room:hover{ background-color: whitesmoke; }
-		.acto-room-name{ width: calc(100% - 300px); }
-		.acto-room-user{ width: 120px; }
-		.acto-room-attr{ width: 80px; }
-		.acto-room-time{ width: 100px; text-align: right; }
-
-/* 애니메이션 */
-@keyframes ActTabNotify{
-	0%{ background-color: darkgreen; }
-	50%{ background-color: green; }
-	100%{ background-color: darkgreen; }
-}
-@keyframes FilterNotify{
-	0%{ opacity: 1; background-color: initial; }
-	50%{ opacity: 0.7; background-color: lightskyblue; }
-	100%{ opacity: 1; background-color: initial; }
-}
+/* 대화 상자 - notice */
+#diag-notice-head{ background-color: whitesmoke; }
+#diag-notice-body{ width: 100%; height: 215px; overflow-y: scroll; }

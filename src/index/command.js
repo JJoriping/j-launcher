@@ -1,11 +1,29 @@
 /**
+ * 유효한 설정의 기본값을 나타낸다.
+ */
+const OPT_DEFAULTS = {
+	'auto': {},
+	'black': [],
+	'black-log': "black.log",
+	'channel-pw': null,
+	'idle-time': 300,
+	'macro': [],
+	'max-chat': 100,
+	'mute': false,
+	'no-ask-upload': false,
+	'no-trace': false,
+	'no-update-notice': false,
+	'prev-per-req': 30,
+	'status-list': [],
+	'use-jom': false,
+	'viewer-resize': true,
+	'white': [],
+	'youtube-view': true
+};
+/**
  * 유효한 설정의 목록을 나타낸다.
  */
-const OPT_KEYS = [
-	"auto", "black", "black-log", "channel-pw", "idle-time", "max-chat", "mute",
-	"no-ask-upload", "prev-per-req", "status-list", "use-jom",
-	"viewer-resize", "white", "youtube-view"
-];
+const OPT_KEYS = Object.keys(OPT_DEFAULTS);
 /**
  * 명령어의 실행을 담당하는 상수 객체이다.
  */
@@ -58,6 +76,13 @@ const COMMANDS = {
 		}).join('');
 
 		command("", Activity.current.room.id, 'cmd-receive', `<ul>${pre}</ul>${L('cmdx')}`);
+	},
+	image: data => {
+		sendMessage('image', Activity.current.room, data.data);
+	},
+	initialize: data => {
+		setOpt(OPT_DEFAULTS);
+		location.reload();
 	},
 	js: data => {
 		try{ data._res = String(eval(data.data)); }
@@ -128,7 +153,8 @@ const CMD_SUBHINT = {
 		(data, argv) => LANG['optx-' + argv[1]] ? `<div class="chint-sub-item chint-sub-list">
 			<label class="chint-match">${argv[1]}</label><br/>
 			${L('optx-' + argv[1])}<br/>
-			<label style="color: orange;">${L('opts-current')}: </label>${OPT[argv[1]]}
+			<label style="color: gold;">${L('opts-current')}</label>: ${OPT[argv[1]]}<br/>
+			<label style="color: orange;">${L('default')}</label>: ${OPT_DEFAULTS[argv[1]]}
 		</div>` : ""
 	],
 	sticker: [
@@ -172,3 +198,13 @@ const CMD_LIST = Object.keys(COMMANDS).sort();
 
 CMD_SUBHINT['note'] = CMD_SUBHINT['call'] = CMD_SUBHINT['w'];
 ipc.on('command', (ev, type, data) => COMMANDS[type](data));
+
+// 빠진 설정을 기본값으로 변경
+(() => {
+	let list = {};
+
+	for(let i in OPT_DEFAULTS){
+		if(!OPT.hasOwnProperty(i)) list[i] = OPT_DEFAULTS[i];
+	}
+	setOpt(list);
+})();

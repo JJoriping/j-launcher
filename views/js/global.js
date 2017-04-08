@@ -5,6 +5,7 @@ const {
 	shell
 } = require("electron");
 const OPT = require("../settings.json");
+const VER = require("../package.json").version;
 
 let $data = {};
 
@@ -38,6 +39,7 @@ function FA(key, afterSpace){
 $(() => {
 	$(".diag-title").on('mousedown', e => {
 		$data.$drag = $(e.currentTarget).parent().parent();
+		$(".dialog:last").after($data.$drag);
 		$data.cx = e.pageX;
 		$data.cy = e.pageY;
 		$(window)
@@ -96,13 +98,22 @@ function getAppMenu(id){
  * 프로그램의 설정 값을 변경하고 파일로 저장한다.
  * 값이 할당되지 않은 경우 해당 정보를 지운다.
  * 
- * @param {string} key 식별자
+ * @param {string|object} key 식별자 또는 식별자 그룹
  * @param {*} value 값. undefined 또는 null인 경우 해당 정보를 지운다.
  */
 function setOpt(key, value){
-	if(value === undefined || value === null) delete OPT[key];
-	else OPT[key] = value;
-	ipc.send('opt', key, value);
+	let obj, i;
+
+	if(typeof key == "string"){
+		obj = {};
+		obj[key] = value;
+	}else obj = key;
+
+	for(i in obj){
+		if(obj[i] === undefined || obj[i] === null) delete OPT[i];
+		else OPT[i] = obj[i];
+	}
+	ipc.send('opt', obj);
 }
 /**
  * Notification 모듈을 이용하여 사용자에게 주어진 내용을 알린다.
@@ -126,16 +137,16 @@ function notify(title, msg){
  * 주어진 식별자로부터 대화 상자를 가져온다.
  * 
  * @param {string} type 식별자
- * @param {boolean} toCenter true인 경우 가운데로 배치된다.
+ * @param {boolean} toCenter true인 경우 가운데로 배치되며 창이 가장 앞으로 온다.
  * @returns {*} 대화 상자의 jQuery 객체
  */
 function $dialog(type, toCenter){
 	let $R = $(`#diag-${type}`);
 
-	if(toCenter) $R.css({
+	if(toCenter) $(".dialog:last").after($R.css({
 		'left': (window.innerWidth - $R.width()) * 0.5,
 		'top': (window.innerHeight - $R.height()) * 0.5
-	});
+	}));
 	return $R;
 }
 /**
@@ -162,6 +173,19 @@ function prompt(title, defaultValue){
 			if(!$diag.is(':visible')) res(null);
 		}
 	});
+}
+/**
+ * 안내 대화 상자를 표시한다.
+ * 
+ * @param {string} head 제목
+ * @param {string} body 본문
+ * @param {Function} onclick 확인 단추의 클릭 이벤트 핸들러
+ */
+function notice(head, body, onclick){
+	$dialog('notice', true).show();
+	$("#diag-notice-head").html(head);
+	$("#diag-notice-body").html(body);
+	$("#diag-notice-ok").off('click').on('click', onclick || (e => $dialog('notice').hide()));
 }
 function onDiagMouseMove(e){
 	let pos = $data.$drag.position();

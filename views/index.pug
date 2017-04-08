@@ -4,6 +4,9 @@ block JS
 	script(type="text/javascript", src="./js/index.min.js")
 	script(type="text/javascript", src="./js/jom.min.js")
 
+block CSS
+	link(rel="stylesheet", href="./css/index.css")
+
 block Jungle
 	+Dialog('login', 300, 300)
 		div.diag-bar
@@ -59,19 +62,28 @@ block Jungle
 			button.ok-button#diag-status-ok= L('OK')
 	+Dialog('bw', 500, 300)
 		div.diag-bar
-			label.diag-bw-label(style='height: 30px;')!= L('diag-bw-tip')
+			label.diag-label(style='height: 30px;')!= L('diag-bw-tip')
 		div.diag-bar
 			each v in [ "black", "white" ]
 				div(style='width: calc(50% - 4px); margin: 2px;')
-					label.diag-bw-label(style='font-weight: bold;')= L('diag-bw-' + v)
+					label.diag-label(style='font-weight: bold;')= L('diag-bw-' + v)
 					div.diag-bw-table(id='diag-bw-' + v)
 					div.diag-bw-menu
 						label(id='diag-bw-' + v + '-count')
-						button.diag-bw-action(id='diag-bw-' + v + '-add')
+						button.diag-action(id='diag-bw-' + v + '-add')
 							+FA('plus')
 		div.diag-bar.diag-tail
 			button.ok-button#diag-bw-ok= L('OK')
-	+Dialog('macro', 400, 400)
+	+Dialog('macro', 400, 350)
+		div.diag-bar
+			label.diag-label= L('diag-macro-tip')
+		div.diag-bar
+			each v in [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 ]
+				div.diag-macro-item(id='diag-macro-' + v)
+					div.diag-macro-item-key= "Ctrl+" + v
+					input.diag-macro-item-value
+					button.diag-action(onclick='$(this.parentNode).children("input").val("");')
+						+FA('remove')
 		div.diag-bar.diag-tail
 			button.ok-button#diag-macro-ok= L('OK')
 	div#command-hint

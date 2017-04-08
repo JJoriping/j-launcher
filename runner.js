@@ -15,6 +15,9 @@ const SCRIPTS = {
 	'chat-bw': () => exports.send('dialog', "bw"),
 	'chat-macro': () => exports.send('dialog', "macro"),
 
+	'program-check-update': () => {
+		exports.send('event', "check-update");
+	},
 	'program-o-settings': () => {
 		exports.send('command', "help_opt");
 		exports.send('external', global.OPT_FILE, true)
@@ -88,12 +91,32 @@ exports.MAIN_MENU = [
 				label: L('menu-chat-list'),
 				accelerator: "CmdOrCtrl+`",
 				click: () => exports.run("chat-list")
+			},
+			{ type: "separator" },
+			{
+				label: L('menu-chat-zoom-in'),
+				accelerator: "CmdOrCtrl+Shift+,",
+				role: "zoomin"
+			},
+			{
+				label: L('menu-chat-zoom-reset'),
+				accelerator: "CmdOrCtrl+Shift+.",
+				role: "resetzoom"
+			},
+			{
+				label: L('menu-chat-zoom-out'),
+				accelerator: "CmdOrCtrl+Shift+/",
+				role: "zoomout"
 			}
 		]
 	},
 	{
 		label: L('menu-program'),
 		submenu: [
+			{
+				label: L('menu-program-check-update'),
+				click: () => exports.run("program-check-update")
+			},
 			{
 				label: L('menu-program-o-settings'),
 				click: () => exports.run("program-o-settings")
@@ -141,8 +164,8 @@ CoJer.log = msg => {
 	exports.send('log', msg);
 };
 
-ipcMain.on('opt', (e, key, value) => {
-	CoJer.setOpt(e.sender, key, value);
+ipcMain.on('opt', (e, data) => {
+	CoJer.setOpt(e.sender, data);
 });
 ipcMain.on('black', (e, data) => {
 	CoJer.setBlackLog(e.sender, data);

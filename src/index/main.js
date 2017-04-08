@@ -1,264 +1,41 @@
-let $stage;
-let $sound;
-
-$(() => {
-	$data.localId = 0;
-	// 스테이지 등록
-	$stage = {
-		body: $("body"),
-		diag: {
-			loginCaptcha: $("#diag-login-captcha-box"),
-			loginOK: $("#diag-login-ok"),
-			loginOut: $("#diag-login-output"),
-			uploadImg: $("#diag-upload-img"),
-			uploadOK: $("#diag-upload-ok"),
-			ceOK: $("#diag-ce-ok"),
-			statusList: $("#diag-status-list"),
-			statusOK: $("#diag-status-ok"),
-			bw: {
-				_: $("#diag-bw"),
-				bTable: $("#diag-bw-black"),
-				bAdd: $("#diag-bw-black-add"),
-				bCount: $("#diag-bw-black-count"),
-				wTable: $("#diag-bw-white"),
-				wAdd: $("#diag-bw-white-add"),
-				wCount: $("#diag-bw-white-count"),
-				ok: $("#diag-bw-ok")
-			}
-		},
-		actTab: $("#act-tab"),
-		acts: $("#activities"),
-		cmdHint: $("#command-hint")
-	};
-	// 기존 설정 반영
-	if(getAppMenu("chat-time").checked) onEvent(null, 'chat-time');
-	if(getAppMenu("chat-list").checked) onEvent(null, 'chan-list');
-	// 소리 등록
-	$sound = {};
-	[
-		'k', 'alarm'
-	].map(v => $sound[v] = new Audio(`media/${v}.mp3`));
-	// 전역 입력 핸들링 / 유휴 상태 검사
-	window.onmousemove = e => {
-		breakIdle();
-	};
-	window.onkeydown = e => {
-		breakIdle();
-		switch(e.key){
-			case 'Enter':
-				$(".dialog:visible .ok-button:last").trigger('click');
-				break;
-			case 'Escape':
-				$(".dialog:visible:last").hide();
-				break;
-			case 'Tab':
-				if(e.ctrlKey){
-					let $list = $(".at-item");
-					let $c = $(".at-current");
-					let len = $list.length;
-
-					if(e.shiftKey) $c = $c.prev()[0];
-					else $c = $c.next()[0];
-					if(!$c) $c = $list.get(!e.shiftKey - 1);
-					
-					setActivity($c.id.slice(8));
-				}
-				break;
-			default: return;
-		}
-	};
-	setInterval(checkIdle, 1000);
-	// 탭 순서 불러오기
-	loadTabOrdinal();
-	// 창에 드롭하는 경우
-	document.body.addEventListener('dragenter', e => {
-		$data._dType = e.dataTransfer.items[0].kind;
-	});
-	document.body.addEventListener('dragover', e => {
-		$stage.body.addClass("dark-body");
-		if($data._dType != "string"){
-			e.preventDefault();
-			e.stopPropagation();
-		}
-	});
-	document.body.addEventListener('dragleave', e => {
-		$stage.body.removeClass("dark-body");
-	});
-	document.body.addEventListener('drop', e => {
-		$stage.body.removeClass("dark-body");
-		if(!Activity.current.onChatPaste(e)){
-			e.preventDefault();
-			e.stopPropagation();
-		}
-	});
-	// 로그인 대화 상자
-	$stage.diag.loginOK.on('click', e => {
-		$stage.diag.loginOK.prop('disabled', true);
-		$stage.diag.loginOut.css('color', "").html("");
-		ipc.send('cojer', 'Login', {
-			id: $("#diag-login-id").val(),
-			pw: $("#diag-login-pw").val(),
-			captcha: $("#diag-login-captcha").val(),
-			captchaKey: $data._ckey,
-			auto: $("#diag-login-auto").is(':checked'),
-			disposable: $("#diag-login-disposable").is(':checked')
-		});
-	});
-	// 업로드 대화 상자
-	$stage.diag.uploadOK.on('click', e => {
-		if($("#diag-upload-auto").is(':checked')) setOpt('no-ask-upload', true);
-		$dialog('upload').hide();
-		sendMessage('image', Activity.current.room, $data._uploading);
-		delete $data._uploading;
-	});
-	// 채널 이메일 대화 상자
-	$stage.diag.ceOK.on('click', e => {
-		let pw = $("#diag-ce-pass").val();
-
-		if(pw.length < 4 || pw.length > 20) return error(102);
-		$stage.diag.ceOK.prop('disabled', true);
-		$("#diag-ce-output").empty();
-		$.post(`http://${CHANNEL_HOST}/ncc/set`, {
-			key: $("#diag-ce-serial").val(),
-			id: $data.myInfo.profile.id,
-			pw: pw,
-			nickname: $data.myInfo.profile.nickname
-		}, res => {
-			$stage.diag.ceOK.prop('disabled', false);
-			if(res.error) $("#diag-ce-output").html(L(`error-${res.error}`));
-			else{
-				notify(L('ce-ok'));
-				setOpt('channel-pw', pw);
-				$dialog('ce').hide();
-				location.reload();
-			}
-		});
-	});
-	// 상태 대화 상자
-	$stage.diag.statusOK.on('click', e => {
-		Channel.send('status', { status: $stage.diag.statusList.val() });
-		$dialog('status').hide();
-	});
-	// 대화 흑백 설정 상자
-	$stage.diag.bw._.on('appear', e => {
-		$data._bw_black = OPT['black'].map(v => v);
-		$data._bw_white = OPT['white'].map(v => v);
-		$stage.diag.bw._.trigger('change');
-	}).on('change', e => {
-		let putter;
-
-		[ 'black', 'white' ].forEach(key => {
-			let head = key.charAt();
-			let $table = $stage.diag.bw[head + 'Table'];
-			let arr = $data['_bw_' + key];
-
-			$table.empty();
-			$stage.diag.bw[head + 'Count'].html(L('diag-bw-count', arr.length));
-			arr.forEach((v, i) => {
-				$table.append(produceBWItem(key, i, v));
-			});
-		});
-		if($data._bwEdit){
-			$("#diag-bw-ti-" + $data._bwEdit).children("div").trigger('click');
-		}
-		function produceBWItem(type, i, rx){
-			let onClick = `
-				$data._bwEdit = this.parentNode.id.slice(11).split('-');
-				this.parentNode.className = 'diag-bw-table-item diag-bw-ti-edit';
-				$(this.parentNode).children('input').focus().trigger('keyup');
-			`;
-			let onBlur = `
-				if(this.value) $data['_bw_' + $data._bwEdit[0]][$data._bwEdit[1]] = this.value;
-				else $data['_bw_' + $data._bwEdit[0]].splice($data._bwEdit[1], 1);
-				$('.diag-bw-filter').removeClass('diag-bw-filter');
-				delete $data._bwEdit;
-				setTimeout(() => $stage.diag.bw._.trigger('change'), 1);
-			`;
-			let onChange = `
-				let rx;
-
-				$('.diag-bw-filter').removeClass('diag-bw-filter');
-				if(this.value){
-					try{ rx = new RegExp(this.value); }
-					catch(e){ return; }
-					if(rx) $('.act-talk').each((i, o) => {
-						let $o = $(o);
-						let id = $o.children('.actt-user').attr('title');
-						let content;
-						
-						if(!id) return;
-						id = id.match(/\\((.+)\\)$/)[1];
-						content = id + ': ' + $o.children('.actt-body').text();
-						
-						if(content.match(rx)) $o.addClass('diag-bw-filter');
-					});
-				}
-				if(event.which == 13) this.onBlur();
-			`;
-			let onRemove = `
-				$data._bw_${type}.splice(${i}, 1);
-				$stage.diag.bw._.trigger('change');
-			`;
-
-			return `<div id="diag-bw-ti-${type}-${i}" class="diag-bw-table-item">
-				<div class="diag-bw-ti-content" onclick="${onClick}">${rx.replace(/</g, "&lt;")}</div>
-				<input id="diag-bw-tiv-${type}-${i}" class="diag-bw-ti-content" value="${rx}" placeholder="${L('diag-bw-placeholder')}" onblur="${onBlur}" onkeyup="${onChange}"/>
-				<button class="diag-bw-action" onclick="${onRemove}">${FA('remove')}</button>
-			</div>`;
-		}
-	});
-	$stage.diag.bw.bAdd.on('click', e => {
-		$data._bwEdit = 'black-' + ($data._bw_black.push("") - 1);
-		$stage.diag.bw._.trigger('change');
-	});
-	$stage.diag.bw.wAdd.on('click', e => {
-		$data._bwEdit = 'white-' + ($data._bw_white.push("") - 1);
-		$stage.diag.bw._.trigger('change');
-	});
-	$stage.diag.bw.ok.on('click', e => {
-		if(document.activeElement.className == "diag-bw-ti-content") return;
-		setOpt('black', $data._bw_black);
-		setOpt('white', $data._bw_white);
-		$dialog('bw').hide();
-	});
-	// 특수 액티비티 등록
-	$data.acts = {};
-	$data.currentAct = ACT_OPENED;
-	createActivity(ACT_OPENED, L('act-or-title'), `
-		<select id="act-or-cafe-list">
-			<option>${L('loading')}</option>
-		</select>
-		<div id="act-or-room-list"></div>
-	`);
-	$stage.roomList = $("#act-or-room-list");
-	$stage.cafeList = $("#act-or-cafe-list").on('mousedown', e => {
-		$stage.cafeList.off('mousedown').children("option:first-child").html(L('act-or-cafe-list')).prop('disabled', true);
-	}).on('change', e => {
-		$data.currentCafe = $data.myInfo.cafeList[$stage.cafeList.val()];
-		ipc.send('cojer', 'OpenRoomList', {
-			cafe: $data.currentCafe
-		});
-	});
-	// 자동 로그인 / 세션 처리
-	if(OPT.auto) ipc.send('cojer', 'Login', OPT.auto);
-	else ipc.send('cojer', 'CheckAuth');
-});
 /**
  * 명령어 사용에 대한 메시지를 출력한다.
  * 
- * @param {*} msg 메시지
+ * @param {string} msg 메시지
  * @param {string} rId 출력할 채팅방 식별자(기본값: 현재 채팅방)
  * @param {string} group 채팅 jQuery 객체에 부가적으로 넣을 클래스의 접미어(기본값: 없음)
  * @param {string} addPre 기본 접두어에서 부가적으로 넣을 접두어(기본값: 없음)
  * @returns {*} 새로 생성된 채팅 jQuery 객체
  */
 function command(msg, rId, group, addPre){
-	let $R = emulateMessage("command", msg, `<label style="color: gray;">${FA('gear')}</label>${addPre || " "}`);
+	let $R = emulateMessage("command", msg, `<label style="color: gray;">${FA('gear')}</label>${addPre || " "}`, rId);
 
 	if(group) $R.addClass(`act-talk-${group}`);
 	return $R;
 }
+/**
+ * 채팅방에 로그를 출력한다.
+ * 
+ * @param {string} msg 메시지
+ * @param {string} rId 출력할 채팅방 식별자(기본값: 현재 채팅방)
+ */
+function log(msg, rId){
+	let $R = emulateMessage("command", msg, `<label style="color: deepskyblue;">${FA('info-circle', true)}</label>`, rId);
 
+	return $R;
+}
+/**
+ * 업데이트를 확인하고 필요에 따라 안내 대화 상자를 띄운다.
+ */
+function checkUpdate(){
+	$.get(LATEST_VERSION_URL, res => {
+		if(res.tag_name == VER) return;
+		notice(L('diag-notice-latest-head', res.tag_name), JOM.parse(res.body), e => {
+			shell.openExternal(res.html_url);
+			$dialog('notice').hide();
+		});
+	});
+}
 /**
  * 새 액티비티를 생성하고 탭을 갱신한다.
  * 
@@ -321,9 +98,15 @@ function setActivity(id){
  * 탭을 갱신한다. 현재 생성된 액티비티가 나타난다.
  */
 function renderActTab(){
-	$stage.actTab.empty();
-	Object.keys($data.acts).map(v => $data.acts[v]).sort((a, b) => a.ord - b.ord).forEach(v => {
-		$stage.actTab.append($(`
+	let list = Object.keys($data.acts);
+	let $wrapper = $("<div>").attr('id', "at-wrapper");
+	let wrapperWidth = 0;
+
+	$stage.actTab.empty().off('wheel').on('wheel', onWheel).append($wrapper);
+	list.map(v => $data.acts[v]).sort((a, b) => a.ord - b.ord).forEach(v => {
+		let $item;
+
+		$wrapper.append($item = $(`
 			<div id="at-item-${v.id}" class="at-item ellipse${(v.room && !v.room.isPublic) ? " at-item-locked" : ""}" draggable="true" onclick="setActivity('${v.id}');">
 				<label class="ati-count" style="display: none;"></label>
 				<i class="fa fa-lock ati-locked"/>
@@ -334,7 +117,10 @@ function renderActTab(){
 			.on('dragenter', onTabDragEnter)
 			.on('dragend', onTabDragEnd)
 		);
+		wrapperWidth += $item[0].getBoundingClientRect().width + 1;
 	});
+	$wrapper.width(wrapperWidth);
+
 	function onTabDragStart(e){
 		$data._movingTab = $(e.currentTarget);
 		$stage.actTab.on('dragenter', onTabDragEnter);
@@ -343,9 +129,10 @@ function renderActTab(){
 	}
 	function onTabDragEnter(e){
 		let $t = $(e.originalEvent.target);
-		
-		if($t.attr('id') == "act-tab"){
-			$t.children(":last-child").after($data._movingTab);
+		let tId = $t.attr('id');
+
+		if(tId == "act-tab" || tId == "at-wrapper"){
+			$t.find(".at-item:last-child").after($data._movingTab);
 		}else{
 			$t.before($data._movingTab);
 		}
@@ -354,6 +141,11 @@ function renderActTab(){
 		saveTabOrdinal();
 		delete $data._movingTab;
 		$stage.actTab.off('dragenter', onTabDragEnter);
+	}
+	function onWheel(e){
+		let delta = e.originalEvent.deltaX || e.originalEvent.deltaY;
+
+		$wrapper.css('left', Math.min(0, Math.max(-wrapperWidth + window.innerWidth, $wrapper.position().left - delta)));
 	}
 	$(`#at-item-${$data.currentAct}`).addClass("at-current");
 }
@@ -560,10 +352,14 @@ function processMessage(data, prev, saveId){
 		default:
 			console.log(data);
 	}
-	$board[prev ? 'prepend' : 'append']($talk = $(`<div id="actt-${rId}-${data.id}" class="act-talk act-talk-${data.user.id}" onclick="traceMessage('${data.user.id}');">
+	$board[prev ? 'prepend' : 'append']($talk = $(`<div id="actt-${rId}-${data.id}" class="act-talk act-talk-${data.user.id}">
 		${content}
 		<div class="actt-stamp" title="${now.toLocaleString()}">${now.toLocaleTimeString()}</div>
 	</div>`));
+	$talk.on('click', e => {
+		if(e.target.tagName == "IMG" || e.target.tagName == "A") return;
+		traceMessage(data.user.id);
+	});
 	if($data.currentAct != rId){
 		if(act.nCount === 0) act.nStartId = data.id;
 		$(`#at-item-${rId}`).addClass("at-notify")
@@ -834,6 +630,7 @@ function traceMessage(id){
 
 	$data._traced = id;
 	$(".act-talk-traced").removeClass("act-talk-traced");
+	if(OPT['no-trace']) return;
 	if(already) delete $data._traced;
 	else $(`.act-talk-${id}`).addClass("act-talk-traced");
 }

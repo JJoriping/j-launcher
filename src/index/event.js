@@ -21,6 +21,7 @@ function onEvent(ev, type, data){
 			setOpt('auto');
 			setOpt('channel-pw');
 			alert(L('logout'));
+			location.reload();
 			break;
 		case 'open-rooms':
 			renderOpenRooms(data);
@@ -52,6 +53,9 @@ function onEvent(ev, type, data){
 			break;
 		case 'chat-time':
 			$stage.acts.toggleClass("time-always-visible");
+			break;
+		case 'check-update':
+			checkUpdate();
 			break;
 		case 'error':
 			error(data.code, data.msg);

@@ -172,6 +172,11 @@ class Activity{
 	}
 	onChatKeyDown(e){
 		switch(e.key){
+			case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': case '0':
+				if(e.ctrlKey){
+					this.$stage.chat.val(OPT['macro'][(Number(e.key) + 9) % 10]);
+				}
+				break;
 			case '/':
 				if(!e.currentTarget.value){
 					$data._hint = true;
@@ -202,46 +207,54 @@ class Activity{
 				break;
 			case 'ArrowUp':
 			case 'ArrowDown':
-				if($data._hint){
-					let isSub = false;
-					let iKey, iList;
-					
-					if($data._subhint){
-						isSub = true;
-						iKey = '_shIndex';
-						iList = '_subhint';
-					}else{
-						iKey = '_hIndex';
-						iList = '_hList';
-					}
-					if($data[iKey] == -1){
-						$data[iKey] = 0;
-					}else{
-						if(e.key == 'ArrowUp'){
-							if(!$data[iKey]--) $data[iKey] = $data[iList].length - 1;
-						}else{
-							if(++$data[iKey] == $data[iList].length) $data[iKey] = 0;
-						}
-					}
-					if(isSub){
-						if($data._subhint[$data._shIndex] !== undefined){
-							$(".chint-sub-item.chint-chosen").removeClass("chint-chosen");
-							let vp = $(`#chint-sub-${$data._subhint[$data._shIndex]}`).addClass("chint-chosen")[0].getBoundingClientRect();
-							let di1 = window.innerHeight - this.$stage.chat.height() - vp.height;
-							let di2 = di1 + vp.height - $stage.cmdHint.height();
-
-							if(vp.top > di1) $stage.cmdHint[0].scrollTop += vp.top - di1;
-							else if(vp.top < di2) $stage.cmdHint[0].scrollTop += vp.top - di2;
-						}
-					}else setCommandHint(true, e.currentTarget.value, $data[iList][$data[iKey]]);
-					e.preventDefault();
-				}else{
-					if(e.key == 'ArrowUp') Activity.current.history.up();
-					else Activity.current.history.down();
-				}
+				this.onChatArrowUpDown(e);
 				break;
 			default: return;
 		}
+	}
+	onChatArrowUpDown(e){
+		if(!$data._hint){
+			if(e.key == 'ArrowUp') Activity.current.history.up();
+			else Activity.current.history.down();
+			return;
+		}
+		let isSub = false;
+		let iKey, iList;
+		let vp;
+		let di1, di2;
+		
+		if($data._subhint){
+			isSub = true;
+			iKey = '_shIndex';
+			iList = '_subhint';
+		}else{
+			iKey = '_hIndex';
+			iList = '_hList';
+		}
+		if($data[iKey] == -1){
+			$data[iKey] = 0;
+		}else{
+			if(e.key == 'ArrowUp'){
+				if(!$data[iKey]--) $data[iKey] = $data[iList].length - 1;
+			}else{
+				if(++$data[iKey] == $data[iList].length) $data[iKey] = 0;
+			}
+		}
+		if(isSub){
+			if($data._subhint[$data._shIndex] !== undefined){
+				$(".chint-sub-item.chint-chosen").removeClass("chint-chosen");
+				vp = $(`#chint-sub-${$data._subhint[$data._shIndex]}`).addClass("chint-chosen")[0].getBoundingClientRect();
+			}
+		}else{
+			setCommandHint(true, e.currentTarget.value, $data[iList][$data[iKey]]);
+			vp = $(".chint-chosen")[0].getBoundingClientRect();
+		}
+		di1 = window.innerHeight - this.$stage.chat.height() - vp.height - 10;
+		di2 = di1 + vp.height - $stage.cmdHint.height();
+		if(vp.top > di1) $stage.cmdHint[0].scrollTop += vp.top - di1;
+		else if(vp.top < di2) $stage.cmdHint[0].scrollTop += vp.top - di2;
+		
+		e.preventDefault();
 	}
 	onChatKeyUp(e){
 		if($data._hint){
@@ -267,7 +280,7 @@ class Activity{
 			case "paste":
 				files = e.clipboardData.items;
 				len = files.length;
-				if(!len || files[0].kind == "string") return true;
+				if(!len || files[len - 1].kind == "string") return true;
 
 				$data._uploading = Clipboard.readImage();
 				$dialog('upload', true).show();
@@ -369,6 +382,7 @@ class Channel{
 	 * @param {string} rId 채팅방 식별자(기본값: 현재 채팅방 식별자)
 	 */
 	static callUser(id, rId){
+		log(L('sent-call', id));
 		Channel.send('call', {
 			rId: rId || Activity.current.room.id,
 			target: id
@@ -458,7 +472,7 @@ class Channel{
 				</div>
 			`.trim()));
 			Channel.updateUser(v);
-			$item.on('click', this.onClick);
+			$item.on('click', this.onClick).on('contextmenu', this.onClick);
 			if(v.id == $data.myInfo.profile.id) $item.addClass("act-list-item-me");
 		});
 	}
