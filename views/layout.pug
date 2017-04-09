@@ -21,7 +21,7 @@ html
 		script(type="text/javascript", src="./js/jquery.js")
 		script(type="text/javascript") global.LANG = 
 			include ../language.json
-		script(type="text/javascript", src="./js/global.js")
+		script(type="text/javascript", src="./js/global.min.js")
 		block JS
 		block CSS
 	body
@@ -33,11 +33,11 @@ html
 					input#diag-prompt-value(type="text", style="width: 100%;")
 				div.diag-bar.diag-tail
 					button.ok-button#diag-prompt-ok= L('OK')
-			+Dialog('notice', 300, 300)
+			+Dialog('notice', 400, 400)
 				div.diag-bar
 					label.diag-label#diag-notice-head
 				div.diag-bar
-					label#diag-notice-body
+					div#diag-notice-body
 				div.diag-bar.diag-tail
 					button.ok-button#diag-notice-ok= L('OK')
 			block Jungle

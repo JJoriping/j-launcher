@@ -6,6 +6,7 @@ function onEvent(ev, type, data){
 			notify(L('login-ok'));
 			$dialog('login').hide();
 			renderMyCafes();
+			checkWatch();
 			ipc.send('cojer', 'MyRoomList');
 			break;
 		case 'login-no':
@@ -62,6 +63,12 @@ function onEvent(ev, type, data){
 			break;
 		case 'set-chat':
 			Activity.current.$stage.chat.val(data.data);
+			break;
+		case 'watch-new':
+			processWatch(data.cafe, JSON.parse(data.before), JSON.parse(data.after));
+			break;
+		case 'find':
+			renderFindTable(data);
 			break;
 		case 'join':
 			renderMyRooms([ data ], true);

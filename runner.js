@@ -8,6 +8,7 @@ const SCRIPTS = {
 	'account-login': () => exports.send('dialog', "login"),
 	'account-logout': () => CoJer.requestLogout(exports),
 
+	'chat-find': () => exports.send('dialog', "find"),
 	'chat-status': () => exports.send('dialog', "status"),
 	'chat-list': () => exports.send('event', "chan-list"),
 	'chat-image': () => exports.send('event', "chat-image"),
@@ -60,6 +61,11 @@ exports.MAIN_MENU = [
 		label: L('menu-chat'),
 		submenu: [
 			{
+				label: L('menu-chat-find'),
+				accelerator: "CmdOrCtrl+F",
+				click: () => exports.run("chat-find")
+			},
+			{
 				label: L('menu-chat-image'),
 				accelerator: "CmdOrCtrl+Space",
 				click: () => exports.run("chat-image")
@@ -95,7 +101,7 @@ exports.MAIN_MENU = [
 			{ type: "separator" },
 			{
 				label: L('menu-chat-zoom-in'),
-				accelerator: "CmdOrCtrl+Shift+,",
+				accelerator: "CmdOrCtrl+Shift+/",
 				role: "zoomin"
 			},
 			{
@@ -105,7 +111,7 @@ exports.MAIN_MENU = [
 			},
 			{
 				label: L('menu-chat-zoom-out'),
-				accelerator: "CmdOrCtrl+Shift+/",
+				accelerator: "CmdOrCtrl+Shift+,",
 				role: "zoomout"
 			}
 		]

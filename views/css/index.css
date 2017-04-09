@@ -28,6 +28,14 @@
 .diag-macro-item{ margin: 2px 0px; }
 	.diag-macro-item-key{ float: left; width: 60px; text-align: center; }
 	.diag-macro-item-value{ width: calc(100% - 90px); }
+/* 대화 상자 - find */
+#diag-find-table{ float: left; width: 100%; height: 200px; overflow-y: scroll; }
+	#diag-find-table div{ float: left; }
+	.diag-find-table-item{ width: 100%; margin: 2px 0px; cursor: pointer; }
+		.diag-find-table-item:hover{ background-color: whitesmoke; }
+		.diag-find-ti-number{ width: 30px; text-align: center; font-weight: bold; }
+		.diag-find-ti-context{ width: calc(100% - 110px); }
+		.diag-find-ti-time{ width: 80px; font-size: 11px; text-align: right; }
 
 /* 명령어 힌트 */
 #command-hint{
@@ -39,7 +47,7 @@
 	padding: 5px;
 	color: deepskyblue;
 	overflow-y: scroll;
-	background-color: rgba(0, 0, 0, 0.7);
+	background-color: rgba(0, 0, 0, 0.8);
 	z-index: 1;
 }
 	.chint-chosen{ background-color: rgba(255, 255, 255, 0.1); }
@@ -127,13 +135,15 @@
 		background-color: #EEE;
 	}
 		.act-menu-title{
-			width: calc(100% - 94px);
+			width: calc(100% - 124px);
 			height: 15px;
 			margin: 2px;
 		}
-			.act-menu-title>i{ border-left: 1px solid lightgray; margin: 0px 4px; }
+			.act-menu-title>i{ border-left: 1px solid lightgray; margin-left: 4px; }
 			.act-menu-prev>i{ transform: translateY(-2px) rotate(90deg); }
-			.actm-title-cafe, .actm-title-attr{ color: #555; }
+			.actm-title-cafe{ color: blue; }
+			.actm-title-attr{ color: #555; }
+			.actm-title-watching{ color: dodgerblue; }
 		.act-menu>button{
 			float: right;
 			width: 29px;
@@ -156,7 +166,7 @@
 				.act-talk-cmd-receive{ color: mediumblue; }
 			.act-white-talk{ background-color: cornsilk; }
 			.act-talk-last{ padding: 0px; border-top: 1px dashed gray; margin-top: 1px; }
-			.actt-user{ width: 120px; }
+			.actt-user{ margin-right: 4px; width: 116px; }
 				.actt-user-image{ width: 15px; height: 15px; margin: 0px 2px; background-size: 100% 100%; }
 			.actt-body{ width: calc(100% - 120px); overflow-wrap: break-word; }
 				.actt-body::before{ content: ":"; float: left; margin: 0px -6px 0px -4px; width: 10px; color: lightgray; }
@@ -213,16 +223,22 @@
 	padding: 5px;
 	background-color: #EEE;
 }
+#act-or-cafe-menu{ width: 100%; height: 20px; }
 #act-or-room-list{
 	width: 100%;
-	height: calc(100% - 30px);
+	height: calc(100% - 50px);
 	overflow-y: scroll;
 }
+	#act-or-cafe-menu>button{
+		float: right;
+		width: 40px;
+		background-color: whitesmoke;
+	}
 	.act-or-room-count{ margin: 2px 0px; font-weight: bold; }
 	.act-or-room{
 		width: calc(100% - 10px);
 		padding: 5px;
-		margin-top: 4px;
+		margin-bottom: 4px;
 		cursor: pointer;
 		background-color: #EEE;
 	}

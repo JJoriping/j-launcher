@@ -1,5 +1,3 @@
-const LATEST_VERSION_URL = "https://api.github.com/repos/JJoriping/j-launcher/releases/latest";
-
 let $stage;
 let $sound;
 
@@ -31,6 +29,16 @@ $(() => {
 				_: $("#diag-macro"),
 				list: $(".diag-macro-item"),
 				ok: $("#diag-macro-ok")
+			},
+			find: {
+				_: $("#diag-find"),
+				input: $("#diag-find-input"),
+				msgid: $("#diag-find-msgid"),
+				status: $("#diag-find-status"),
+				ok: $("#diag-find-ok"),
+				next: $("#diag-find-next"),
+				prev: $("#diag-find-prev"),
+				table: $("#diag-find-table")
 			}
 		},
 		actTab: $("#act-tab"),
@@ -169,51 +177,58 @@ $(() => {
 				$table.append(produceBWItem(key, i, v));
 			});
 		});
+		$(".diag-bw-table-item>div").on('click', e => {
+			let target = e.currentTarget;
+
+			$data._bwEdit = target.parentNode.id.slice(11).split('-');
+			target.parentNode.className = 'diag-bw-table-item diag-bw-ti-edit';
+			$(target.parentNode).children('input').focus().trigger('keyup');
+		});
+		$(".diag-bw-table-item>input").on('keyup', e => {
+			let target = e.currentTarget;
+			let rx;
+
+			$('.diag-bw-filter').removeClass('diag-bw-filter');
+			if(target.value){
+				try{ rx = new RegExp(target.value); }
+				catch(e){ return; }
+				if(rx) $('.act-talk').each((i, o) => {
+					let $o = $(o);
+					let id = $o.children('.actt-user').attr('title');
+					let content;
+					
+					if(!id) return;
+					id = id.match(/\((.+)\)$/)[1];
+					content = id + ': ' + $o.children('.actt-body').text();
+					
+					if(content.match(rx)) $o.addClass('diag-bw-filter');
+				});
+			}
+			if(event.which == 13) $(target).blur();
+		}).each((i, o) => {
+			o.onblur = onBlur;
+		});
 		if($data._bwEdit){
 			$("#diag-bw-ti-" + $data._bwEdit).children("div").trigger('click');
 		}
+		function onBlur(e){
+			let target = e.currentTarget;
+			
+			if(target.value) $data['_bw_' + $data._bwEdit[0]][$data._bwEdit[1]] = target.value;
+			else $data['_bw_' + $data._bwEdit[0]].splice($data._bwEdit[1], 1);
+			$('.diag-bw-filter').removeClass('diag-bw-filter');
+			delete $data._bwEdit;
+			setTimeout(() => $stage.diag.bw._.trigger('change'), 1);
+		}
 		function produceBWItem(type, i, rx){
-			let onClick = `
-				$data._bwEdit = this.parentNode.id.slice(11).split('-');
-				this.parentNode.className = 'diag-bw-table-item diag-bw-ti-edit';
-				$(this.parentNode).children('input').focus().trigger('keyup');
-			`;
-			let onBlur = `
-				if(this.value) $data['_bw_' + $data._bwEdit[0]][$data._bwEdit[1]] = this.value;
-				else $data['_bw_' + $data._bwEdit[0]].splice($data._bwEdit[1], 1);
-				$('.diag-bw-filter').removeClass('diag-bw-filter');
-				delete $data._bwEdit;
-				setTimeout(() => $stage.diag.bw._.trigger('change'), 1);
-			`;
-			let onChange = `
-				let rx;
-
-				$('.diag-bw-filter').removeClass('diag-bw-filter');
-				if(this.value){
-					try{ rx = new RegExp(this.value); }
-					catch(e){ return; }
-					if(rx) $('.act-talk').each((i, o) => {
-						let $o = $(o);
-						let id = $o.children('.actt-user').attr('title');
-						let content;
-						
-						if(!id) return;
-						id = id.match(/\\((.+)\\)$/)[1];
-						content = id + ': ' + $o.children('.actt-body').text();
-						
-						if(content.match(rx)) $o.addClass('diag-bw-filter');
-					});
-				}
-				if(event.which == 13) this.onBlur();
-			`;
 			let onRemove = `
 				$data._bw_${type}.splice(${i}, 1);
 				$stage.diag.bw._.trigger('change');
 			`;
 
 			return `<div id="diag-bw-ti-${type}-${i}" class="diag-bw-table-item">
-				<div class="diag-bw-ti-content" onclick="${onClick}">${rx.replace(/</g, "&lt;")}</div>
-				<input id="diag-bw-tiv-${type}-${i}" class="diag-bw-ti-content" value="${rx}" placeholder="${L('diag-bw-placeholder')}" onblur="${onBlur}" onkeyup="${onChange}"/>
+				<div class="diag-bw-ti-content">${rx.replace(/</g, "&lt;")}</div>
+				<input id="diag-bw-tiv-${type}-${i}" class="diag-bw-ti-content" value="${rx}" placeholder="${L('diag-bw-placeholder')}"/>
 				<button class="diag-action" onclick="${onRemove}">${FA('remove')}</button>
 			</div>`;
 		}
@@ -249,6 +264,31 @@ $(() => {
 		setOpt('macro', macro);
 		$dialog('macro').hide();
 	});
+	// 대화 검색 대화 상자
+	$stage.diag.find._.on('appear', e => {
+		delete $data._findLast;
+		$stage.diag.find.input.select().focus();
+		$stage.diag.find.msgid.val("");
+	}).on('disappear', e => {
+		Activity.current.$stage.chat.focus();
+	});
+	$stage.diag.find.input.on('keydown', e => {
+		if(e.key != 'Enter') if($data._findLast){
+			delete $data._findLast;
+			$stage.diag.find.status.empty();
+			$stage.diag.find.table.empty();
+		}
+	});
+	$stage.diag.find.ok.on('click', e => {
+		let value = $stage.diag.find.input.val();
+		let last = $stage.diag.find.msgid.val();
+
+		if(!value) return;
+		findChatting(value, {
+			regex: $("#diag-find-opt-regex").is(':checked'),
+			last: last ? (last - OPT['find-depth']) : null
+		});
+	});
 	// 특수 액티비티 등록
 	$data.acts = {};
 	$data.currentAct = ACT_OPENED;
@@ -256,8 +296,14 @@ $(() => {
 		<select id="act-or-cafe-list">
 			<option>${L('loading')}</option>
 		</select>
+		<div id="act-or-cafe-menu">
+			<div class="act-or-cm-count"></div>
+			<button id="act-or-cm-visit" title="${L('visit-cafe')}">${FA('external-link')}</button>
+			<button id="act-or-cm-new" title="${L('act-or-cm-new')}">${FA('magic')}</button>
+		</div>
 		<div id="act-or-room-list"></div>
 	`);
+	$stage.cafeMenu = $("#act-or-cafe-menu");
 	$stage.roomList = $("#act-or-room-list");
 	$stage.cafeList = $("#act-or-cafe-list").on('mousedown', e => {
 		$stage.cafeList.off('mousedown').children("option:first-child").html(L('act-or-cafe-list')).prop('disabled', true);
@@ -266,6 +312,20 @@ $(() => {
 		ipc.send('cojer', 'OpenRoomList', {
 			cafe: $data.currentCafe
 		});
+	});
+	$("#act-or-cm-new").on('click', e => {
+		prompt(L('act-or-cm-new'), L('act-or-cm-title-default', $data.myInfo.profile.nickname)).then(res => {
+			if(!res) return;
+			ipc.send('cojer', 'CreateRoom', {
+				cafe: $data.currentCafe,
+				userList: [ $data.myInfo.profile.id ],
+				options: { name: res, isPublic: 'O' }
+			});
+		});
+	});
+	$("#act-or-cm-visit").on('click', e => {
+		if(!$data.currentCafe) return error(105);
+		shell.openExternal(CAFE_BOARD_URL($data.currentCafe.id));
 	});
 	// 자동 로그인 / 세션 처리
 	if(OPT['auto']) ipc.send('cojer', 'Login', OPT.auto);

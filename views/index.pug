@@ -86,6 +86,24 @@ block Jungle
 						+FA('remove')
 		div.diag-bar.diag-tail
 			button.ok-button#diag-macro-ok= L('OK')
+	+Dialog('find', 400, 390)
+		div.diag-bar
+			label.diag-label!= L('diag-find-tip')
+		div.diag-bar
+			label(for='diag-find-input')= L('diag-find-input')
+			input#diag-find-input(type="text", placeholder=L('diag-find-input'))
+		div.diag-bar
+			label(for='diag-find-msgid')= L('diag-find-msgid')
+			input#diag-find-msgid(type="text", placeholder=L('diag-find-msgid'))
+		div.diag-bar
+			label(for='diag-find-opt-regex')= L('diag-find-opt-regex')
+			input#diag-find-opt-regex(type="checkbox")
+		div.diag-bar.diag-separator
+		div.diag-bar
+			label.diag-label#diag-find-status
+			div#diag-find-table
+		div.diag-bar.diag-tail
+			button.ok-button#diag-find-ok= L('diag-find-ok')
 	div#command-hint
 
 block Middle

@@ -23,10 +23,7 @@ const CHANNEL_MENU = Remote.Menu.buildFromTemplate([
 		click: () => Channel.callUser($data._cTarget)
 	}
 ]);
-const CHANNEL_HOST = "jjo.kr";
 const ACT_OPENED = "opened";
-const HISTORY_MAX = 100;
-const STICKER_URL = (pack, seq, qs) => `https://ssl.phinf.net/gfmarket/${pack}/original_${seq}.png${qs ? `?${qs}` : ""}`;
 
 /**
  * 액티비티를 정의한다.
@@ -72,6 +69,8 @@ class Activity{
 				.on('click', e => this.onMenuPrevClick(e)),
 			save: $obj.find(".act-menu-save")
 				.on('click', e => this.onMenuSaveClick(e)),
+			find: $obj.find(".act-menu-find")
+				.on('click', e => this.onMenuFindClick(e)),
 			quit: $obj.find(".act-menu-quit")
 				.on('click', e => this.onMenuQuitClick(e))
 		};
@@ -123,7 +122,8 @@ class Activity{
 		this.$stage.menu.children(".act-menu-title").html(`
 			<label class="actm-title-name"><b>${room.name}</b></label><i/>
 			<label class="actm-title-user">${L('act-mr-user', room.userCount)}</label><i/>
-			<label class="actm-title-cafe">${room.cafe.name}</label><i/>
+			<a class="actm-title-cafe" href="#" title="${L('visit-cafe')}" onclick="shell.openExternal('${CAFE_BOARD_URL(room.cafe.id)}');">${room.cafe.name}</a>
+			<label class="actm-title-watch actm-tw-${room.cafe.id}" href="#" title="${L('act-mr-watch')}" onclick="toggleWatch(${room.cafe.id});">${FA('eye')}</label><i/>
 			<label class="actm-title-attr">${room.isPublic ? L('act-mr-public') : L('act-mr-private')}</label>
 		`);
 	}
@@ -317,7 +317,10 @@ class Activity{
 		Remote.dialog.showSaveDialog(Remote.getCurrentWindow(), {
 			title: L('act-mr-save'),
 			defaultPath: `${this.room.name}-${Date.now()}.txt`
-		}, path => this.requestSaveChat(path.replace(/\\/g, "/")));
+		}, path => path && this.requestSaveChat(path.replace(/\\/g, "/")));
+	}
+	onMenuFindClick(e){
+		$dialog('find', true).show();
 	}
 	onMenuQuitClick(e){
 		if(!confirm(L('sure-quit', this.room.name))) return;
@@ -417,10 +420,12 @@ class Channel{
 				error(data.code, data.msg);
 				break;
 			case 'conn':
+				if(!OPT['optx-no-channel-notice']) log(L('chan-conn', data.user.nickname), chan.rId);
 				chan.list.push(data.user);
 				chan.renderList();
 				break;
 			case 'disconn':
+				if(!OPT['optx-no-channel-notice']) log(L('chan-disconn', data.user.nickname), chan.rId);
 				chan.list = chan.list.filter(v => v.id != data.user.id);
 				chan.renderList();
 				break;
@@ -503,7 +508,7 @@ class ChatHistory{
 	 * @param {string} data 내용
 	 */
 	put(data){
-		if(this.list.unshift(data) > HISTORY_MAX){
+		if(this.list.unshift(data) > OPT['history-max']){
 			this.list.pop();
 		}
 		this.index = -1;

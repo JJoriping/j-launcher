@@ -57,6 +57,7 @@ blockquote{ display: inline; padding-left: 4px; border-left: 4px solid gray; mar
 			.diag-tail>button{ float: right; padding: 2px 0px; margin: 0px 1px; width: 80px; }
 			.ok-button{ color: royalblue; background-color: lightskyblue; }
 			.diag-tail>button:disabled{ color: gray; background-color: #AAA; }
+		.diag-separator{ border-bottom: 1px solid lightgray; }
 	.diag-action{
 		float: right;
 		width: 20px;
@@ -73,4 +74,4 @@ blockquote{ display: inline; padding-left: 4px; border-left: 4px solid gray; mar
 	}
 /* 대화 상자 - notice */
 #diag-notice-head{ background-color: whitesmoke; }
-#diag-notice-body{ width: 100%; height: 215px; overflow-y: scroll; }
+#diag-notice-body{ width: 100%; height: 315px; overflow-y: scroll; }

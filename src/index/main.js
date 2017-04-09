@@ -37,6 +37,135 @@ function checkUpdate(){
 	});
 }
 /**
+ * 구독한 카페의 새 글을 확인하고 필요에 따라 알린다.
+ */
+function checkWatch(){
+	ipc.send('cojer', 'Watch', {
+		cafeList: OPT['watch-list'],
+		urlList: OPT['watch-list'].map(CAFE_BOARD_URL)
+	});
+	if(OPT['watch-interval'] >= 1) $data._watchT = setTimeout(checkWatch, OPT['watch-interval'] * 60000);
+}
+/**
+ * 카페를 구독하거나 구독 취소한다.
+ * 일정 주기마다 구독한 카페의 새 글을 자동으로 확인한다.
+ * 
+ * @param {number} id 카페 식별자
+ */
+function toggleWatch(id){
+	let list = OPT['watch-list'];
+	let seq = list.indexOf(id);
+
+	if(seq == -1) list.push(id);
+	else list.splice(seq, 1);
+
+	setOpt('watch-list', list);
+	renderWatch();
+}
+/**
+ * 카페의 구독 여부 표시를 갱신한다.
+ */
+function renderWatch(){
+	$(".actm-title-watching").removeClass("actm-title-watching");
+	OPT['watch-list'].forEach(v => {
+		$(".actm-tw-" + v).addClass("actm-title-watching");
+	});
+}
+/**
+ * 게시글 정보를 비교하여 필요에 따라 알린다.
+ * 
+ * @param {number} cafe 카페 식별자
+ * @param {any[]} before 이전 게시글 정보
+ * @param {any[]} after 현재 게시글 정보
+ */
+function processWatch(cafe, before, after){
+	let i, cafeName;
+	let diff = [];
+	let bLast = before[0];
+	let aLast = after[0];
+	let title, text;
+
+	for(i in $data.myInfo.cafeList) if($data.myInfo.cafeList[i].id == cafe){
+		cafeName = $data.myInfo.cafeList[i].name;
+	}
+	for(i in after){
+		if(bLast.id < after[i].id) diff.push(after[i]);
+	}
+	title = L('watch-new', cafeName);
+	if(diff.length > 1){
+		text = L('watch-new-many', aLast.author, aLast.title, diff.length);
+	}else if(diff.length){
+		text = L('watch-new-one', aLast.author, aLast.title);
+	}
+	notify(title, text);
+	$(".actm-tw-" + cafe).each((i, o) => {
+		emulateMessage('watch', text,
+			`<label style="color: dodgerblue;">${FA('eye')}</label>
+			[<a target="_blank" href="${CAFE_ARTICLE_URL(cafe, aLast.id)}">${L('go')}</a>]&nbsp;`,
+			$(o).parents(".activity").attr('id').slice(4)
+		, null, null, true);
+	});
+}
+/**
+ * 주어진 방에서 채팅을 검색한다.
+ * 
+ * @param {string} word 검색어
+ * @param {object} opts 검색 옵션{ regex: 진릿값, last: 검색 범위 출발 지점 }
+ * @param {string} rId 채팅방 식별자(기본값: 현재 채팅방)
+ */
+function findChatting(word, opts, rId){
+	let act = rId ? $data.acts[rId] : Activity.current;
+
+	if(!opts) opts = {};
+	ipc.send('cojer', 'Find', {
+		word: word,
+		opts: opts,
+		room: act.room,
+		last: opts.last || act._lastMsgId || act.room.lastMsgSn
+	});
+}
+/**
+ * 검색 결과 표를 갱신한다.
+ * 
+ * @param {object} data 검색 결과 정보
+ */
+function renderFindTable(data){
+	let word = data.word;
+	let $table = $stage.diag.find.table.empty();
+	let dateRange = data.dateRange.map(v => new Date(v));
+
+	$stage.diag.find.msgid.val($data._findLast = data.last);
+	if(!dateRange.length) return $table.html(L('diag-find-no-res'));
+	if(data.opts.regex) word = new RegExp(word);
+	$stage.diag.find.status.html(L('diag-find-result', data.list.length,
+		dateRange[0].toLocaleString(),
+		dateRange[1].toLocaleString(),
+		data.length
+	));
+	data.list.forEach((v, i) => {
+		let cssContext = v.context.replace(word, w => `<label style="color: cornflowerblue;">${w}</label>`);
+
+		$table.append(`<div id="diag-find-ti-${v.id}" class="diag-find-table-item" title="${v.context}">
+			<div class="diag-find-ti-number">${i + 1}</div>
+			<div class="diag-find-ti-context ellipse">${cssContext}</div>
+			<div class="diag-find-ti-time">${new Date(v.time).toLocaleTimeString()}</div>
+		</div>`);
+	});
+	$table.children(".diag-find-table-item").on('click', e => {
+		let destId = Number(e.currentTarget.id.slice(13));
+		let rId = data.rId.replace(":", "-");
+		let act = $data.acts[rId];
+
+		act.$stage.board.empty();
+		ipc.send('cojer', 'PrevChat', {
+			room: act.room,
+			from: destId - 49,
+			to: destId + 50
+		});
+		log(L('find-result'), rId);
+	});
+}
+/**
  * 새 액티비티를 생성하고 탭을 갱신한다.
  * 
  * @param {string} id 액티비티 식별자 
@@ -188,7 +317,8 @@ function renderMyCafes(){
 function renderOpenRooms(list){
 	let now = Date.now();
 
-	$stage.roomList.empty().append(`<div class="act-or-room-count">${L('act-or-room-count', list.length)}</div>`);
+	$stage.roomList.empty();
+	$(".act-or-cm-count").html(L('act-or-room-count', list.length));
 	list.forEach(v => {
 		let id = v.id.replace(":", "-");
 		let u = (now - new Date(v.updated).getTime()) * 0.001;
@@ -222,6 +352,7 @@ function renderMyRooms(list, noPrev){
 				<button class="act-menu-quit" title="${L('act-mr-quit')}">${FA('sign-out')}</button>
 				<button class="act-menu-prev" title="${L('act-mr-prev')}">${FA('backward')}</button>
 				<button class="act-menu-save" title="${L('act-mr-save')}">${FA('download')}</button>
+				<button class="act-menu-find" title="${L('act-mr-find')}">${FA('search')}</button>
 			</div>
 			<div class="act-board"></div>
 			<div class="act-list act-list-closed"></div>
@@ -235,6 +366,7 @@ function renderMyRooms(list, noPrev){
 		if(noPrev) act._prevChat = 0;
 		act.setRoom(v);
 	});
+	renderWatch();
 }
 /**
  * 주어진 DOM 객체의 스크롤이 가장 아래에 있는지 확인한다.
@@ -251,9 +383,10 @@ function checkScrollBottom(obj){
  * @param {*} data 받은 정보
  * @param {boolean} prev 이전 채팅 여부. true인 경우 가장 위에 배치된다.
  * @param {boolean} saveId true인 경우 대상 액티비티의 최근 메시지 번호가 이 정보의 번호로 설정된다.
+ * @param {boolean} silent true인 경우 대화 카운트를 올리지 않는다.
  * @returns {*} 새로 생성된 채팅 jQuery 객체
  */
-function processMessage(data, prev, saveId){
+function processMessage(data, prev, saveId, silent){
 	let rId = data.room.id.replace(":", "-");
 	let act = $data.acts[rId];
 	if(!act){
@@ -288,6 +421,8 @@ function processMessage(data, prev, saveId){
 			return;
 		}
 	}
+	if(OPT['no-image']) data.type = "text";
+
 	switch(data.type){
 		case "text": content = `
 			${cUser(data.user)}
@@ -311,7 +446,7 @@ function processMessage(data, prev, saveId){
 			content = `
 			${cUser(data.user)}
 			<div class="actt-body">
-				<img src="${data.image}" onerror="$(this).replaceWith(FA('exclamation-circle'));" onload="processImage(this, '${data.xxhdpi}', ${isBottom});"/>
+				<img src="${data.image}" title="${data.image}" onerror="$(this).replaceWith(FA('exclamation-circle'));" onload="processImage(this, '${data.xxhdpi}', ${isBottom});"/>
 			</div>
 			`;
 			break;
@@ -321,6 +456,7 @@ function processMessage(data, prev, saveId){
 				data.user.nickname, data.user.id
 			);
 			act.setRoom(data.room);
+			renderWatch();
 			break;
 		case "invite": // 초대
 			content = cNotice(data.type,
@@ -328,6 +464,7 @@ function processMessage(data, prev, saveId){
 				data.target.map(v => `${v.nickname} (${v.id})`).join(', ')
 			);
 			act.setRoom(data.room);
+			renderWatch();
 			break;
 		case "reject": // 강퇴
 			content = cNotice(data.type,
@@ -335,12 +472,14 @@ function processMessage(data, prev, saveId){
 				data.target.nickname, data.target.id
 			);
 			act.setRoom(data.room);
+			renderWatch();
 			break;
 		case "changeMaster": // 방장
 			content = cNotice("change-master",
 				data.target
 			);
 			act.setRoom(data.room);
+			renderWatch();
 			break;
 		case "changeName": // 방 제목
 			content = cNotice("change-name",
@@ -348,6 +487,7 @@ function processMessage(data, prev, saveId){
 				data.target
 			);
 			act.setRoom(data.room);
+			renderWatch();
 			break;
 		default:
 			console.log(data);
@@ -360,7 +500,7 @@ function processMessage(data, prev, saveId){
 		if(e.target.tagName == "IMG" || e.target.tagName == "A") return;
 		traceMessage(data.user.id);
 	});
-	if($data.currentAct != rId){
+	if(!silent && $data.currentAct != rId){
 		if(act.nCount === 0) act.nStartId = data.id;
 		$(`#at-item-${rId}`).addClass("at-notify")
 			.children(".ati-count").show().html(++act.nCount);
@@ -411,8 +551,10 @@ function processMessage(data, prev, saveId){
  * @param {string} rId 채팅방 식별자(기본값: 현재 채팅방)
  * @param {*} user 사용자 정보(기본값: 내 정보)
  * @param {number} time 시간 정보(기본값: 현재)
+ * @param {boolean} silent true인 경우 대화 카운트를 올리지 않는다.
+ * @returns {*} 새로 생성된 채팅 jQuery 객체
  */
-function emulateMessage(type, msg, pre, rId, user, time){
+function emulateMessage(type, msg, pre, rId, user, time, silent){
 	return processMessage({
 		id: `${type}-${++$data.localId}`,
 		room: { id: rId || Activity.current.room.id },
@@ -421,7 +563,7 @@ function emulateMessage(type, msg, pre, rId, user, time){
 		preMessage: pre || "",
 		message: msg,
 		time: time || Date.now()
-	});
+	}, false, false, silent);
 }
 /**
  * 채널로부터의 쪽지를 처리한다.

@@ -7,3 +7,4 @@ auth.json
 npm-debug.log
 clipboard.png
 black.log
+data/*

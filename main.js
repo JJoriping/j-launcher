@@ -19,7 +19,6 @@ const Pug = require('electron-pug')({ pretty: true }, {
 });
 
 let mainWindow;
-// let tray;
 
 App.on('ready', main);
 App.on('window-all-closed', () => {
@@ -44,9 +43,5 @@ function main(){
 	};
 
 	mainWindow = new BrowserWindow(winOpt);
-	// tray = new Tray(winOpt.icon);
-	
 	mainWindow.loadURL(__dirname + "/views/index.pug");
-	/*tray.setToolTip(V);
-	tray.setContextMenu(Menu.buildFromTemplate(Runner.MAIN_MENU));*/
 }
