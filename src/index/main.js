@@ -411,8 +411,10 @@ function processMessage(data, prev, saveId, silent){
 	let $talk;
 	let content = `${data.user.id}: ${data.message}`;
 
-	if(isMe) data.user = profile;
-	else{
+	if(isMe){
+		data.user = profile;
+		data.user.id = $data.myInfo.id;
+	}else{
 		if(checkBW(OPT['white'], content)){
 			isWhite = true;
 			if(!prev) notify(L('on-white', data.user.nickname), data.message);

@@ -7,7 +7,11 @@ function onEvent(ev, type, data){
 			$dialog('login').hide();
 			renderMyCafes();
 			checkWatch();
-			ipc.send('cojer', 'MyRoomList');
+			renderMyRooms(data.roomList);
+			if(localStorage.hasOwnProperty('recentAct')){
+				setActivity(localStorage.getItem('recentAct'));
+			}
+			if(OPT['channel-pw']) Channel.init($data.myInfo.id, OPT['channel-pw']);
 			break;
 		case 'login-no':
 			if(!data) data = {};
@@ -51,17 +55,6 @@ function onEvent(ev, type, data){
 		case 'open-rooms':
 			renderOpenRooms(data);
 			break;
-		case 'my-profile':
-			data.id = $data.myInfo.id;
-			$data.myInfo.profile[data.cId] = data;
-			break;
-		case 'my-rooms':
-			renderMyRooms(data);
-			if(localStorage.hasOwnProperty('recentAct')){
-				setActivity(localStorage.getItem('recentAct'));
-			}
-			if(OPT['channel-pw']) Channel.init($data.myInfo.id, OPT['channel-pw']);
-			break;
 		case 'sess-msg':
 			processMessage(data, false, true);
 			break;
@@ -88,6 +81,9 @@ function onEvent(ev, type, data){
 			break;
 		case 'check-update':
 			checkUpdate();
+			break;
+		case 'log':
+			log(data);
 			break;
 		case 'error':
 			error(data.code, data.msg);

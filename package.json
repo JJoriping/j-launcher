@@ -1,6 +1,6 @@
 {
   "name": "j-launcher",
-  "version": "2.2.1",
+  "version": "2.2.1a",
   "description": "Client for Naver cafe chatting",
   "main": "main.js",
   "scripts": {

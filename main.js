@@ -39,7 +39,7 @@ function main(){
 		title: `${V} - Now Loading`,
 		width: OPT['width'] || 900,
 		height: OPT['height'] || 600,
-		icon: `./views/img/logo.ico`
+		icon: `${__dirname}/views/img/logo.ico`
 	};
 
 	mainWindow = new BrowserWindow(winOpt);
