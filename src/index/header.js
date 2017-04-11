@@ -305,7 +305,7 @@ class Activity{
 		if(text.length > 500) if(!confirm(L('error-101'))){
 			return this.$stage.chat.val(text.slice(0, 500));
 		}
-		sendMessage("text", this.room, text);
+		sendMessage('text', this.room, text);
 		setCommandHint(false);
 		this.$stage.chat.val("");
 	}

@@ -108,7 +108,7 @@ const COMMANDS = {
 		Channel.send('status', { status: data.data });
 	},
 	sticker: data => {
-		sendMessage('sticker', Activity.current.room, `${data.group}-${data.seq}`);
+		sendMessage('sticker', Activity.current.room, { pack: data.group, seq: data.seq });
 	},
 	w: data => {
 		Channel.send('whisper', {
@@ -212,7 +212,7 @@ function onSubhintClick(item){
 
 	if($(item).hasClass("chint-si-sticker")){
 		argv = $data._cmdText.split(' ');
-		sendMessage('sticker', Activity.current.room, `${argv[1]}-${value}`);
+		sendMessage('sticker', Activity.current.room, { pack: argv[1], seq: value });
 		setCommandHint(false);
 	}else{
 		setCommandHint(true, $data._cmdText + value + " ");
