@@ -2,7 +2,8 @@ const {
 	clipboard: Clipboard,
 	ipcRenderer: ipc,
 	remote: Remote,
-	shell
+	shell,
+	webFrame
 } = require("electron");
 const OPT = require("../settings.json");
 const VER = require("../package.json").version;

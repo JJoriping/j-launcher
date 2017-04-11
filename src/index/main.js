@@ -8,7 +8,8 @@
  * @returns {*} 새로 생성된 채팅 jQuery 객체
  */
 function command(msg, rId, group, addPre){
-	let $R = emulateMessage("command", msg, `<label style="color: gray;">${FA('gear')}</label>${addPre || " "}`, rId);
+	let user = (group == "cmd-send") ? null : USER_NOTICE;
+	let $R = emulateMessage("command", msg, `<label style="color: gray;">${FA('gear')}</label>${addPre || " "}`, rId, user);
 
 	if(group) $R.addClass(`act-talk-${group}`);
 	return $R;
@@ -20,7 +21,7 @@ function command(msg, rId, group, addPre){
  * @param {string} rId 출력할 채팅방 식별자(기본값: 현재 채팅방)
  */
 function log(msg, rId){
-	let $R = emulateMessage("command", msg, `<label style="color: deepskyblue;">${FA('info-circle', true)}</label>`, rId);
+	let $R = emulateMessage("command", msg, `<label style="color: deepskyblue;">${FA('info-circle', true)}</label>`, rId, USER_NOTICE);
 
 	return $R;
 }
@@ -29,7 +30,9 @@ function log(msg, rId){
  */
 function checkUpdate(){
 	$.get(LATEST_VERSION_URL, res => {
-		if(res.tag_name == VER) return;
+		if(res.tag_name == VER){
+			return log(L('latest-version'));
+		}
 		notice(L('diag-notice-latest-head', res.tag_name), JOM.parse(res.body), e => {
 			shell.openExternal(res.html_url);
 			$dialog('notice').hide();
@@ -101,9 +104,9 @@ function processWatch(cafe, before, after){
 	$(".actm-tw-" + cafe).each((i, o) => {
 		emulateMessage('watch', text,
 			`<label style="color: dodgerblue;">${FA('eye')}</label>
-			[<a target="_blank" href="${CAFE_ARTICLE_URL(cafe, aLast.id)}">${L('go')}</a>]&nbsp;`,
+			[<a href="#" onclick="shell.openExternal('${CAFE_ARTICLE_URL(cafe, aLast.id)}');">${L('go')}</a>]&nbsp;`,
 			$(o).parents(".activity").attr('id').slice(4)
-		, null, null, true);
+		, USER_NOTICE, null, true);
 	});
 }
 /**
@@ -284,7 +287,7 @@ function renderActTab(){
 function saveTabOrdinal(){
 	let ord = [];
 	
-	$stage.actTab.children().each((i, o) => ord.push(o.id));
+	$stage.actTab.find(".at-item").each((i, o) => ord.push(o.id));
 	localStorage.setItem('tab-ordinal', ord.join(','));
 	loadTabOrdinal();
 }
@@ -361,6 +364,7 @@ function renderMyRooms(list, noPrev){
 				<textarea class="act-chat"></textarea>
 				<button class="act-send">${L('act-mr-send')}</button>
 				<button class="act-image">${L('act-mr-image')}</button>
+				<button class="act-sticker">${L('act-mr-sticker')}</button>
 			</div>
 		`);
 		if(noPrev) act._prevChat = 0;
@@ -389,6 +393,7 @@ function checkScrollBottom(obj){
 function processMessage(data, prev, saveId, silent){
 	let rId = data.room.id.replace(":", "-");
 	let act = $data.acts[rId];
+	let profile = $data.myInfo.profile[act.room.cafe.id] || USER_NOTICE;
 	if(!act){
 		// 일대일 채팅이 생겼을 때 방 정보가 나타나지 않는 경우에 대한 처리
 		if(!data.room.name){
@@ -399,14 +404,14 @@ function processMessage(data, prev, saveId, silent){
 		act = $data.acts[rId];
 	}
 	let $board = act.$stage.board, board = $board.get(0);
-	let isMe = data.user.id == $data.myInfo.profile.id;
+	let isMe = data.user.id == $data.myInfo.id;
 	let isWhite = false;
 	let isBottom = checkScrollBottom(board);
 	let now = new Date(data.time);
 	let $talk;
 	let content = `${data.user.id}: ${data.message}`;
 
-	if(isMe) data.user = $data.myInfo.profile;
+	if(isMe) data.user = profile;
 	else{
 		if(checkBW(OPT['white'], content)){
 			isWhite = true;
@@ -555,10 +560,12 @@ function processMessage(data, prev, saveId, silent){
  * @returns {*} 새로 생성된 채팅 jQuery 객체
  */
 function emulateMessage(type, msg, pre, rId, user, time, silent){
+	let cafeId = rId ? $data.acts[rId.replace(":", "-")].room.cafe.id : Activity.current.room.cafe.id;
+
 	return processMessage({
 		id: `${type}-${++$data.localId}`,
 		room: { id: rId || Activity.current.room.id },
-		user: user || $data.myInfo.profile,
+		user: user || $data.myInfo.profile[cafeId] || USER_NOTICE,
 		type: "text",
 		preMessage: pre || "",
 		message: msg,
@@ -641,10 +648,10 @@ function produceText(text){
 	if(OPT['use-jom']) R = JOM.parse(text
 		.replace(/ /g, "&nbsp;")
 		.replace(/\n/g, "\n\n")
-		.replace(/(https?:\/\/.+?\.[^)]+?)(?:\s|<br>|$)/gi, (v, p1) => `[${p1}](${p1})`));
+		.replace(/(https?:\/\/.+?\.[^)]+?)(?:&nbsp;|\s|<br>|$)/gi, (v, p1) => `[${p1}](${p1})`));
 	else R = text
 		.replace(/<|>|&|\n| /g, v => TABLE[v])
-		.replace(/(https?:\/\/.+?\..+?)(?:\s|<br>|$)/gi, (v, p1) => `<a href="#" onclick="shell.openExternal('${p1}');">${p1}</a>`);
+		.replace(/(https?:\/\/.+?\..+?)(?:&nbsp;|\s|<br>|$)/gi, (v, p1) => `<a href="#" onclick="shell.openExternal('${p1}');">${p1}</a>`);
 	
 	if(OPT['youtube-view']) R = R
 		.replace(/<a\s+.+?onclick="shell\.openExternal\('https:\/\/(?:\w+?\.youtube\.com\/watch\?v=|youtu\.be\/)(.+?)(?:&.+)?'\);".*?>.+?<\/a>/g, (v, p1) => `${v}<iframe src="https://www.youtube.com/embed/${p1}" allowfullscreen frameborder="0"></iframe>`);
@@ -729,10 +736,12 @@ function setCommandHint(visible, text, chosen){
 	$data._shIndex = -1;
 	delete $data._subhint;
 	if(!text){
+		delete $data._cmdText;
 		$data._hint = visible = false;
 		$stage.cmdHint.hide();
 		return;
 	}
+	$data._cmdText = text;
 	try{
 		argv = text.slice(1).split(' ');
 		reg = new RegExp(`^(${argv[0]})${(argv.length > 1) ? '$' : ''}`);

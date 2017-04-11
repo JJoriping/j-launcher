@@ -1,6 +1,6 @@
 {
   "name": "j-launcher",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Client for Naver cafe chatting",
   "main": "main.js",
   "scripts": {
@@ -23,7 +23,7 @@
   "homepage": "https://github.com/JJoriping/j-launcher#readme",
   "dependencies": {
     "colors": "^1.1.2",
-    "electron": "^1.4.15",
+    "electron": "1.4.15",
     "electron-packager": "^8.6.0",
     "electron-pug": "^1.5.1",
     "jsdom": "^9.12.0",

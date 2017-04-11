@@ -8,6 +8,7 @@ $(() => {
 		body: $("body"),
 		diag: {
 			loginCaptcha: $("#diag-login-captcha-box"),
+			loginOTP: $("#diag-login-otp-box"),
 			loginOK: $("#diag-login-ok"),
 			loginOut: $("#diag-login-output"),
 			uploadImg: $("#diag-upload-img"),
@@ -36,8 +37,7 @@ $(() => {
 				msgid: $("#diag-find-msgid"),
 				status: $("#diag-find-status"),
 				ok: $("#diag-find-ok"),
-				next: $("#diag-find-next"),
-				prev: $("#diag-find-prev"),
+				back: $("#diag-find-back"),
 				table: $("#diag-find-table")
 			}
 		},
@@ -114,11 +114,13 @@ $(() => {
 	$stage.diag.loginOK.on('click', e => {
 		$stage.diag.loginOK.prop('disabled', true);
 		$stage.diag.loginOut.css('color', "").html("");
+		if($data._loginForm && $data._loginForm['otp']) $data._loginForm['otp'] = $("#diag-login-otp").val();
 		ipc.send('cojer', 'Login', {
 			id: $("#diag-login-id").val(),
 			pw: $("#diag-login-pw").val(),
 			captcha: $("#diag-login-captcha").val(),
 			captchaKey: $data._ckey,
+			form: $data._loginForm,
 			auto: $("#diag-login-auto").is(':checked'),
 			disposable: $("#diag-login-disposable").is(':checked')
 		});
@@ -139,9 +141,9 @@ $(() => {
 		$("#diag-ce-output").empty();
 		$.post(`http://${CHANNEL_HOST}/ncc/set`, {
 			key: $("#diag-ce-serial").val(),
-			id: $data.myInfo.profile.id,
+			id: $data.myInfo.id,
 			pw: pw,
-			nickname: $data.myInfo.profile.nickname
+			nickname: $data.myInfo.profile[Activity.current.room.cafe.id].nickname
 		}, res => {
 			$stage.diag.ceOK.prop('disabled', false);
 			if(res.error) $("#diag-ce-output").html(L(`error-${res.error}`));
@@ -273,20 +275,37 @@ $(() => {
 		Activity.current.$stage.chat.focus();
 	});
 	$stage.diag.find.input.on('keydown', e => {
-		if(e.key != 'Enter') if($data._findLast){
+		if(e.shiftKey && e.key == 'Enter'){
+			$stage.diag.find.back.trigger('click');
+			e.stopPropagation();
+		}
+	}).on('keyup', e => {
+		if($data._fInput != e.currentTarget.value) if($data._findLast){
 			delete $data._findLast;
 			$stage.diag.find.status.empty();
+			$stage.diag.find.msgid.val("");
 			$stage.diag.find.table.empty();
 		}
+		$data._fInput = e.currentTarget.value;
 	});
 	$stage.diag.find.ok.on('click', e => {
 		let value = $stage.diag.find.input.val();
-		let last = $stage.diag.find.msgid.val();
+		let last = Number($stage.diag.find.msgid.val());
 
 		if(!value) return;
 		findChatting(value, {
 			regex: $("#diag-find-opt-regex").is(':checked'),
 			last: last ? (last - OPT['find-depth']) : null
+		});
+	});
+	$stage.diag.find.back.on('click', e => {
+		let value = $stage.diag.find.input.val();
+		let last = Number($stage.diag.find.msgid.val());
+
+		if(!value) return;
+		findChatting(value, {
+			regex: $("#diag-find-opt-regex").is(':checked'),
+			last: last ? (last + OPT['find-depth']) : null
 		});
 	});
 	// 특수 액티비티 등록
@@ -314,11 +333,11 @@ $(() => {
 		});
 	});
 	$("#act-or-cm-new").on('click', e => {
-		prompt(L('act-or-cm-new'), L('act-or-cm-title-default', $data.myInfo.profile.nickname)).then(res => {
+		prompt(L('act-or-cm-new'), L('act-or-cm-title-default', $data.currentCafe.name)).then(res => {
 			if(!res) return;
 			ipc.send('cojer', 'CreateRoom', {
 				cafe: $data.currentCafe,
-				userList: [ $data.myInfo.profile.id ],
+				userList: [ $data.myInfo.id ],
 				options: { name: res, isPublic: 'O' }
 			});
 		});
@@ -332,12 +351,16 @@ $(() => {
 	else ipc.send('cojer', 'CheckAuth');
 	// 업데이트 확인
 	if(!OPT['no-update-notice']) checkUpdate();
-	// 창 크기 기억
+	// 창 크기, 줌 기억
+	if($data._zoom = localStorage.getItem('zoom')){
+		webFrame.setZoomFactor(Number($data._zoom));
+	}
 	if($data._winSize = localStorage.getItem('winSize')){
 		$data._winSize = $data._winSize.split(',').map(v => Number(v));
 		Remote.getCurrentWindow().setSize($data._winSize[0], $data._winSize[1], false);
 	}
 	window.onbeforeunload = e => {
+		localStorage.setItem('zoom', webFrame.getZoomFactor());
 		localStorage.setItem('winSize', Remote.getCurrentWindow().getSize().join(','));
 	};
 });

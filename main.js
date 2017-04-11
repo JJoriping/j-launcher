@@ -39,9 +39,9 @@ function main(){
 		title: `${V} - Now Loading`,
 		width: OPT['width'] || 900,
 		height: OPT['height'] || 600,
-		icon: __dirname + "/views/img/logo.ico"
+		icon: `file://${__dirname}/views/img/logo.ico`
 	};
 
 	mainWindow = new BrowserWindow(winOpt);
-	mainWindow.loadURL(__dirname + "/views/index.pug");
+	mainWindow.loadURL(`file://${__dirname}/views/index.pug`);
 }

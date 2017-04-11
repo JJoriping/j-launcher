@@ -137,7 +137,7 @@ const CMD_STD_SUBHINT = function(poolBuilder, renderer){
 		this.argv = argv;
 		$data._subhint = pool.filter(v => v.indexOf(data) != -1);
 		$data._subhint.forEach(v => R += `
-		<div id="chint-sub-${v}" class="chint-sub-item chint-sub-list">
+		<div id="chint-sub-${v}" class="chint-sub-item chint-sub-list" onclick="onSubhintClick(this);">
 			${renderer.call(my, v, this.styler)}
 		</div>`);
 		return R;
@@ -184,7 +184,8 @@ const CMD_SUBHINT = {
 				x = -108 * (i % 3);
 				y = -100 * Math.floor(i / 3);
 				$data._subhint.push(i + 1);
-				R += `<div id="chint-sub-${i + 1}" class="chint-sub-item chint-sub-block"
+				R += `<div id="chint-sub-${i + 1}" class="chint-sub-item chint-sub-block chint-si-sticker"
+					onclick="onSubhintClick(this);"
 					style="background: url(${preview}) ${x}px ${y}px no-repeat;">
 					${i + 1}
 				</div>`;
@@ -205,6 +206,18 @@ const CMD_LIST = Object.keys(COMMANDS).sort();
 CMD_SUBHINT['note'] = CMD_SUBHINT['call'] = CMD_SUBHINT['w'];
 ipc.on('command', (ev, type, data) => COMMANDS[type](data));
 
+function onSubhintClick(item){
+	let value = item.id.slice(10);
+	let argv;
+
+	if($(item).hasClass("chint-si-sticker")){
+		argv = $data._cmdText.split(' ');
+		sendMessage('sticker', Activity.current.room, `${argv[1]}-${value}`);
+		setCommandHint(false);
+	}else{
+		setCommandHint(true, $data._cmdText + value + " ");
+	}
+}
 // 빠진 설정을 기본값으로 변경
 (() => {
 	let list = {};

@@ -9,6 +9,7 @@ const SCRIPTS = {
 	'account-logout': () => CoJer.requestLogout(exports),
 
 	'chat-find': () => exports.send('dialog', "find"),
+	'chat-prev': () => exports.send('event', "req-prev"),
 	'chat-status': () => exports.send('dialog', "status"),
 	'chat-list': () => exports.send('event', "chan-list"),
 	'chat-image': () => exports.send('event', "chat-image"),
@@ -64,6 +65,11 @@ exports.MAIN_MENU = [
 				label: L('menu-chat-find'),
 				accelerator: "CmdOrCtrl+F",
 				click: () => exports.run("chat-find")
+			},
+			{
+				label: L('menu-chat-prev'),
+				accelerator: "CmdOrCtrl+G",
+				click: () => exports.run("chat-prev")
 			},
 			{
 				label: L('menu-chat-image'),

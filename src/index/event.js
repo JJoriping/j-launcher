@@ -10,12 +10,36 @@ function onEvent(ev, type, data){
 			ipc.send('cojer', 'MyRoomList');
 			break;
 		case 'login-no':
+			if(!data) data = {};
 			$stage.diag.loginOK.prop('disabled', false);
-			$stage.diag.loginOut.css('color', "red").html(data);
-			notify(L('login-no'), data);
-			if(data.indexOf("img") != -1){
+			$stage.diag.loginOut.css('color', "red").html(data.text);
+			notify(L('login-no'), data.text);
+			if(data.captcha){
 				$data._ckey = data.match(/key=(\w+)/)[1];
 				$stage.diag.loginCaptcha.show();
+			}else if(data.addDevice){
+				$data._loginForm = {};
+				$stage.diag.loginOut.css('color', "red")
+					.append($("<label>").addClass("diag-label").html(L('error-121')))
+					.append(data.addDevice);
+				$stage.diag.loginOut.find("input[type=hidden]").each((i, o) => {
+					$data._loginForm[o.name] = o.value;
+				});
+				$stage.diag.loginOut.find(".btn_upload>a").attr('onclick', "").on('click', e => {
+					$data._loginForm['regyn'] = "Y";
+					$stage.diag.loginOK.trigger('click');
+				});
+				$stage.diag.loginOut.find(".btn_cancel>a").attr('onclick', "").on('click', e => {
+					$data._loginForm['regyn'] = "N";
+					$stage.diag.loginOK.trigger('click');
+				});
+			}else if(data.otp){
+				$data._loginForm = {};
+				$stage.diag.loginOut.find("input[type=hidden]").each((i, o) => {
+					$data._loginForm[o.name] = o.value;
+				});
+				$data._loginForm['otp'] = true;
+				$stage.diag.loginOTP.show();
 			}
 			break;
 		case 'logout':
@@ -27,12 +51,16 @@ function onEvent(ev, type, data){
 		case 'open-rooms':
 			renderOpenRooms(data);
 			break;
+		case 'my-profile':
+			data.id = $data.myInfo.id;
+			$data.myInfo.profile[data.cId] = data;
+			break;
 		case 'my-rooms':
 			renderMyRooms(data);
 			if(localStorage.hasOwnProperty('recentAct')){
 				setActivity(localStorage.getItem('recentAct'));
 			}
-			if(OPT['channel-pw']) Channel.init($data.myInfo.profile.id, OPT['channel-pw']);
+			if(OPT['channel-pw']) Channel.init($data.myInfo.id, OPT['channel-pw']);
 			break;
 		case 'sess-msg':
 			processMessage(data, false, true);
@@ -42,6 +70,9 @@ function onEvent(ev, type, data){
 			break;
 		case 'sess-progress':
 			processProgress(data);
+			break;
+		case 'req-prev':
+			Activity.current.$stage.prev.trigger('click');
 			break;
 		case 'prev-chat':
 			data.reverse().forEach(v => processMessage(v, true));

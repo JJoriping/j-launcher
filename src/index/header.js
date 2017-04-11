@@ -9,6 +9,11 @@ const STATUS_CLASS = {
 	'online': "online",
 	'afk': "afk"
 };
+const USER_NOTICE = {
+	id: "j-launcher",
+	image: __dirname.replace(/\\/g, "/") + "/img/logo.ico",
+	nickname: L('notice')
+};
 const CHANNEL_MENU = Remote.Menu.buildFromTemplate([
 	{
 		label: L('menu-actli-whisper'),
@@ -60,11 +65,14 @@ class Activity{
 			chat: $obj.find(".act-chat")
 				.on('keydown', e => this.onChatKeyDown(e))
 				.on('keyup', e => this.onChatKeyUp(e))
+				.on('click', e => setCommandHint(false))
 				.on('paste', e => this.onChatPaste(e.originalEvent)),
 			send: $obj.find(".act-send")
 				.on('click', e => this.onSendClick(e)),
 			image: $obj.find(".act-image")
 				.on('click', e => this.onImageClick(e)),
+			sticker: $obj.find(".act-sticker")
+				.on('click', e => this.onStickerClick(e)),
 			prev: $obj.find(".act-menu-prev")
 				.on('click', e => this.onMenuPrevClick(e)),
 			save: $obj.find(".act-menu-save")
@@ -98,13 +106,13 @@ class Activity{
 					if(!pw) return;
 					setOpt('channel-pw', pw);
 					
-					Channel.init($data.myInfo.profile.id, pw);
+					Channel.init($data.myInfo.id, pw);
 					for(let i in $data.acts) $data.acts[i].initChannel();
 				});
 			});
 			this.$stage.list.children(".act-mr-chan-go-email").on('click', e => {
-				$.post(`http://${CHANNEL_HOST}/ncc/email`, { id: $data.myInfo.profile.id }, res => {
-					if(res) $dialog('ce', true).show().find("#diag-ce-target").html(L('diag-ce-target', $data.myInfo.profile.id));
+				$.post(`http://${CHANNEL_HOST}/ncc/email`, { id: $data.myInfo.id }, res => {
+					if(res) $dialog('ce', true).show().find("#diag-ce-target").html(L('diag-ce-target', $data.myInfo.id));
 				});
 			});
 		}
@@ -307,6 +315,9 @@ class Activity{
 			files.forEach(v => sendMessage('image', this.room, v));
 		});
 	}
+	onStickerClick(e){
+		setCommandHint(true, "/sticker ");
+	}
 	onMenuPrevClick(e){
 		this.$stage.prev.prop('disabled', true);
 		setTimeout(() => this.$stage.prev.prop('disabled', false), 1000);
@@ -478,7 +489,7 @@ class Channel{
 			`.trim()));
 			Channel.updateUser(v);
 			$item.on('click', this.onClick).on('contextmenu', this.onClick);
-			if(v.id == $data.myInfo.profile.id) $item.addClass("act-list-item-me");
+			if(v.id == $data.myInfo.id) $item.addClass("act-list-item-me");
 		});
 	}
 	onClick(e){
@@ -500,6 +511,7 @@ class ChatHistory{
 		this.activity = activity;
 		this.list = [];
 		this.index = -1;
+		this.lastChat = null;
 	}
 
 	/**
@@ -512,6 +524,7 @@ class ChatHistory{
 			this.list.pop();
 		}
 		this.index = -1;
+		this.lastChat = null;
 	}
 
 	/**
@@ -523,6 +536,7 @@ class ChatHistory{
 
 		if(chat.selectionStart + chat.selectionEnd > 0) return;
 		if(!len) return;
+		if(this.index == -1) this.lastChat = chat.value;
 
 		this.index = Math.min(this.index + 1, len - 1);
 		chat.value = this.list[this.index];
@@ -534,6 +548,10 @@ class ChatHistory{
 	down(){
 		let chat = this.activity.$stage.chat[0];
 
+		if(this.index == 0 && this.lastChat){
+			chat.value = this.lastChat;
+			return;
+		}
 		if(chat.selectionStart != chat.selectionEnd || chat.selectionEnd != chat.value.length) return;
 		if(!this.list.length) return;
 

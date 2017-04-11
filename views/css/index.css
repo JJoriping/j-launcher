@@ -60,6 +60,7 @@
 		margin-left: 20px;
 		color: lightgray;
 	}
+		.chint-sub-list:hover{ background-color: rgba(255, 255, 255, 0.1); }
 	.chint-sub-block{
 		float: left;
 		width: 94px;
@@ -69,7 +70,7 @@
 		color: whitesmoke;
 		text-shadow: 0px 1px 1px black;
 	}
-		.chint-sub-block.chint-chosen{ border: 1px solid #AAA; margin: 0px; color: yellow; font-size: 15px; }
+		.chint-sub-block:hover, .chint-sub-block.chint-chosen{ border: 1px solid #AAA; margin: 0px; color: yellow; font-size: 15px; }
 /* 탭 */
 #act-tab{
 	position: absolute;
@@ -213,8 +214,9 @@
 			.act-list-item-me{ font-weight: bold; }
 			.act-list-item:hover{ background-color: #EEE; }
 	.act-me{ width: 100%; height: 99px; border-top: 1px solid lightgray; }
-		.act-chat{ float: left; padding: 5px; width: calc(100% - 70px); height: calc(100% - 10px); resize: none; background-color: whitesmoke; }
-		.act-me>button{ float: left; width: 60px; height: 50%; border-bottom: 1px solid lightgray; font-size: 20px; }
+		.act-chat{ float: left; padding: 5px; width: calc(100% - 80px); height: calc(100% - 10px); resize: none; background-color: whitesmoke; }
+		.act-me>button{ float: left; width: 35px; height: 50%; border-bottom: 1px solid lightgray; font-size: 16px; }
+			.act-me>.act-send{ width: 70px; }
 			.act-me>button:hover{ background-color: #EEE; }
 /* 특수 액티비티 - 공개 채팅방(OpenRoom) */
 #act-or-cafe-list{
