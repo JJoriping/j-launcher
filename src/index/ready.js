@@ -56,8 +56,7 @@ $(() => {
 			},
 			dict: {
 				_: $("#diag-dict"),
-				page: $("#diag-dict-page"),
-				ok: $("#diag-dict-ok")
+				page: $("#diag-dict-page")
 			}
 		},
 		actTab: $("#act-tab"),
@@ -84,7 +83,6 @@ $(() => {
 		breakIdle();
 		switch(e.key){
 			case 'Enter':
-				if(document.activeElement.className == "act-chat") break;
 				$(".dialog:visible .ok-button:last").trigger('click');
 				break;
 			case 'Escape':
@@ -391,7 +389,34 @@ $(() => {
 	});
 	// 채팅 참여자 대화 상자
 	$stage.diag.users._.on('appear', e => {
+		$stage.diag.users.table.empty();
+		$data._usersPool.forEach(v => {
+			$stage.diag.users.table.append(`<div id="diag-users-ti-${v.id || v.userId}" class="diag-users-ti ellipse">
+				<img class="diag-users-ti-image" src="${v.profileUrl ? v.profileUrl.web : v.profileImage}"/>
+				<label style="color: orange;">${v.isMaster ? FA('star') : ""}</label>
+				<label class="diag-users-ti-name">${v.nickname}</label>
+				<label class="diag-users-ti-id"> (${v.id || v.userId})</label>
+			</div>`);
+		});
+		$stage.diag.users.table.children(".diag-users-ti").on('click', onClick).on('contextmenu', onClick);
+		function onClick(e){
+			$data._roomUsersTarget = e.currentTarget.id.slice(14);
+			USERS_MENU.popup(Remote.getCurrentWindow());
+		}
+	});
+	$stage.diag.users.search.on('keyup', e => {
+		let value = e.currentTarget.value;
 		
+		if(value == $data._searchBefore) return;
+		if($data._searchBefore = value){
+			ipc.send('cojer', 'SearchUsers', {
+				cafeId: $data._roomUsersAct.room.cafe.id,
+				query: e.currentTarget.value
+			});
+		}else{
+			$data._usersPool = $data._roomUsers;
+			$stage.diag.users._.trigger('appear');
+		}
 	});
 	// 특수 액티비티 등록
 	$data.acts = {};

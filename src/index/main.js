@@ -432,6 +432,7 @@ function processMessage(data, prev, saveId, silent){
 		if(checkBW(OPT['black'], content)){
 			if(!prev) ipc.send('black', {
 				id: data.user.id,
+				nickname: data.user.nickname,
 				content: data.message,
 				time: now
 			});
@@ -857,6 +858,7 @@ function breakIdle(){
  */
 function checkIdle(){
 	if($data.isIdle) return;
+	if($data.myInfo.status && $data.myInfo.status != "online") return;
 	if(++$data._idle >= OPT['idle-time']){
 		$data.isIdle = true;
 		Channel.send('status', { status: "afk" });

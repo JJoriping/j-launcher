@@ -47,7 +47,10 @@
 		background-color: whitesmoke;
 	}
 /* 대화 상자 - users */
-#diag-users-table{ width: 100%; height: 320px; overflow-y: scroll; }
+#diag-users-table{ width: 100%; height: 340px; overflow-y: scroll; }
+	.diag-users-ti{ margin-bottom: 2px; }
+		.diag-users-ti-image{ width: 16px; height: 16px; margin-right: 1px; vertical-align: middle; }
+	.diag-users-ti:hover{ background-color: whitesmoke; }
 
 /* 명령어 힌트 */
 #command-hint{
@@ -154,6 +157,7 @@
 			height: 15px;
 			margin: 2px;
 		}
+			.actm-title-name:hover, .actm-title-user:hover{ cursor: pointer; background-color: white; }
 			.act-menu-title>i{ border-left: 1px solid lightgray; margin-left: 4px; }
 			.act-menu-prev>i{ transform: translateY(-2px) rotate(90deg); }
 			.actm-title-cafe{ color: blue; }

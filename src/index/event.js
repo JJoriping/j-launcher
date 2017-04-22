@@ -66,8 +66,18 @@ function onEvent(ev, type, data){
 			break;
 		case 'room-users':
 			data.memberList.unshift(data.masterInfo);
+			$data._roomUsersAct = $data.acts[data.roomId.replace(':', '-')];
 			$data._roomUsers = data.memberList;
-			$dialog('users', true).show();
+			$data._usersPool = data.memberList;
+			$dialog('users', true).show().trigger('appear');
+			break;
+		case 'search-users':
+			$data._searchUsers = data.items[0].map(v => v[0]);
+			$data._usersPool = $data._searchUsers;
+			$dialog('users').trigger('appear');
+			break;
+		case 'dict':
+			console.log(data);
 			break;
 		case 'req-prev':
 			Activity.current.$stage.prev.trigger('click');

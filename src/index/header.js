@@ -28,6 +28,48 @@ const CHANNEL_MENU = Remote.Menu.buildFromTemplate([
 		click: () => Channel.callUser($data._cTarget)
 	}
 ]);
+const USERS_MENU = Remote.Menu.buildFromTemplate([
+	{
+		label: L('menu-diagu-1to1'),
+		click: () => { }
+	},
+	{
+		label: L('menu-diagu-kick'),
+		click: () => {
+			if($data._roomUsersAct.room.master.id == $data.myInfo.id){
+				if(!confirm(L('kick-sure', $data._roomUsersTarget))) return;
+				$("#diag-users-ti-" + $data._roomUsersTarget).remove();
+				ipc.send('cojer', 'Kick', {
+					room: $data._roomUsersAct.room,
+					target: $data._roomUsersTarget
+				});
+			}else error(122);
+		}
+	},
+	{
+		label: L('menu-diagu-invite'),
+		click: () => {
+			log(L('invite-req', $data._roomUsersTarget), $data._roomUsersAct.room.id);
+			ipc.send('cojer', 'Invite', {
+				room: $data._roomUsersAct.room,
+				target: $data._roomUsersTarget
+			});
+		}
+	},
+	{
+		label: L('menu-diagu-delegate'),
+		click: () => {
+			if($data._roomUsersAct.room.master.id == $data.myInfo.id){
+				if(!confirm(L('delegate-sure', $data._roomUsersTarget))) return;
+				$data._roomUsersAct.room.master.id = $data._roomUsersTarget;
+				ipc.send('cojer', 'Delegate', {
+					room: $data._roomUsersAct.room,
+					target: $data._roomUsersTarget
+				});
+			}else error(122);
+		}
+	}
+]);
 const ACT_OPENED = "opened";
 
 /**
@@ -125,7 +167,6 @@ class Activity{
 	 * @param {*} room 방 정보
 	 */
 	setRoom(room){
-		let onRename = `if('${room.master.id}' == $data.myInfo.id) prompt('${L('room-name-change')}', '${room.name}');`;
 		let onUser = `ipc.send('cojer', 'RoomUsers', { cafeId: ${room.cafe.id}, roomId: '${room.id}' });`;
 
 		this.room = room;
@@ -133,12 +174,16 @@ class Activity{
 
 		$(`#at-item-${this.id}`)[room.isPublic ? 'removeClass' : 'addClass']("at-item-locked");
 		this.$stage.menu.children(".act-menu-title").html(`
-			<label class="actm-title-name" onclick="${onRename}"><b>${room.name}</b></label><i/>
+			<label class="actm-title-name"><b>${room.name}</b></label><i/>
 			<label class="actm-title-user" onclick="${onUser}">${L('act-mr-user', room.userCount)}</label><i/>
 			<a class="actm-title-cafe" href="#" title="${L('visit-cafe')}" onclick="shell.openExternal('${CAFE_BOARD_URL(room.cafe.id)}');">${room.cafe.name}</a>
 			<label class="actm-title-watch actm-tw-${room.cafe.id}" href="#" title="${L('act-mr-watch')}" onclick="toggleWatch(${room.cafe.id});">${FA('eye')}</label><i/>
 			<label class="actm-title-attr">${room.isPublic ? L('act-mr-public') : L('act-mr-private')}</label>
-		`);
+		`).children(".actm-title-name").on('click', e => {
+			if(room.master.id == $data.myInfo.id) prompt(L('room-name-change'), room.name).then(v => {
+				if(v) ipc.send('cojer', 'RoomRename', { room: room, name: v });
+			});
+		});
 	}
 	/**
 	 * 이 액티비티가 포함한 채팅 기록을 저장한다.
@@ -206,6 +251,9 @@ class Activity{
 					}else if($data._hint && $data._hIndex >= 0){
 						this.$stage.chat.val("/" + $data._hList[$data._hIndex] + " ");
 					}else{
+						if(this.$stage.chat.val()){
+							e.stopPropagation();
+						}
 						this.$stage.send.trigger('click');
 					}
 					e.preventDefault();
@@ -423,6 +471,7 @@ class Channel{
 		let status = global.LANG[`diag-status-${user.status}`] || user.status;
 		let title = `${user.nickname} (${user.id})\n${status}`;
 
+		if($data.myInfo.id == user.id) $data.myInfo.status = user.status;
 		$items.attr('title', title);
 		$items.children(".act-list-item-status")
 			.removeClass("actli-status-online actli-status-custom actli-status-afk")
