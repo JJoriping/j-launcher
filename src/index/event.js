@@ -64,6 +64,11 @@ function onEvent(ev, type, data){
 		case 'sess-progress':
 			processProgress(data);
 			break;
+		case 'room-users':
+			data.memberList.unshift(data.masterInfo);
+			$data._roomUsers = data.memberList;
+			$dialog('users', true).show();
+			break;
 		case 'req-prev':
 			Activity.current.$stage.prev.trigger('click');
 			break;
@@ -105,6 +110,9 @@ function onEvent(ev, type, data){
 		case 'quit':
 			removeActivity(data.id.replace(":", "-"));
 			saveTabOrdinal();
+			break;
+		case 'zoom':
+			moveZoom(data);
 			break;
 	}
 }

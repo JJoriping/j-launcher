@@ -36,6 +36,18 @@
 		.diag-find-ti-number{ width: 30px; text-align: center; font-weight: bold; }
 		.diag-find-ti-context{ width: calc(100% - 110px); }
 		.diag-find-ti-time{ width: 80px; font-size: 11px; text-align: right; }
+/* 대화 상자 - answer */
+#diag-answer-table{ width: 100%; height: 255px; overflow-y: scroll; }
+	.diag-answer-ti{ float: left; margin-bottom: 2px; width: 100%; }
+		.diag-answer-ti-id{ float: left; width: 30px; padding-top: 3px; text-align: center; font-weight: bold; }
+		.diag-answer-ti>input{ margin-right: 2px; width: calc(50% - 33px); }
+	.diag-answer-menu{
+		width: 100%;
+		height: 20px;
+		background-color: whitesmoke;
+	}
+/* 대화 상자 - users */
+#diag-users-table{ width: 100%; height: 320px; overflow-y: scroll; }
 
 /* 명령어 힌트 */
 #command-hint{
@@ -120,8 +132,10 @@
 	.channel-list-collapsed .act-board{ width: 100% !important; }
 	.channel-list-collapsed .act-list{ display: none; }
 	.channel-list-collapsed .act-ghost{ width: 100% !important; }
+	.channel-list-collapsed .act-menu-leaf{ background-color: whitesmoke; }
 	.time-always-visible .actt-stamp{ display: block; margin-left: 0px; background-color: initial; }
 	.time-always-visible .actt-body{ width: calc(100% - 200px) !important; }
+	.time-always-visible .actt-notice{ width: calc(100% - 80px) !important; }
 .activity{
 	display: none;
 	float: left;
@@ -136,7 +150,7 @@
 		background-color: #EEE;
 	}
 		.act-menu-title{
-			width: calc(100% - 124px);
+			width: calc(100% - 154px);
 			height: 15px;
 			margin: 2px;
 		}

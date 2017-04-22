@@ -16,6 +16,8 @@ const SCRIPTS = {
 	'chat-time': () => exports.send('event', "chat-time"),
 	'chat-bw': () => exports.send('dialog', "bw"),
 	'chat-macro': () => exports.send('dialog', "macro"),
+	'chat-answer': () => exports.send('dialog', "answer"),
+	'chat-zoom': v => exports.send('event', "zoom", v),
 
 	'program-check-update': () => {
 		exports.send('event', "check-update");
@@ -92,6 +94,11 @@ exports.MAIN_MENU = [
 				accelerator: "CmdOrCtrl+M",
 				click: () => exports.run("chat-macro")
 			},
+			{
+				label: L('menu-chat-answer'),
+				accelerator: "CmdOrCtrl+N",
+				click: () => exports.run("chat-answer")
+			},
 			{ type: "separator" },
 			{
 				label: L('menu-chat-status'),
@@ -108,17 +115,17 @@ exports.MAIN_MENU = [
 			{
 				label: L('menu-chat-zoom-in'),
 				accelerator: "CmdOrCtrl+Shift+/",
-				role: "zoomin"
+				click: () => exports.run("chat-zoom", 1)
 			},
 			{
 				label: L('menu-chat-zoom-reset'),
 				accelerator: "CmdOrCtrl+Shift+.",
-				role: "resetzoom"
+				click: () => exports.run("chat-zoom", 0)
 			},
 			{
 				label: L('menu-chat-zoom-out'),
 				accelerator: "CmdOrCtrl+Shift+,",
-				role: "zoomout"
+				click: () => exports.run("chat-zoom", -1)
 			}
 		]
 	},
@@ -166,8 +173,8 @@ exports.MAIN_MENU = [
 	}
 ];
 exports.L = L;
-exports.run = (cmd) => {
-	SCRIPTS[cmd]();
+exports.run = (cmd, ...argv) => {
+	SCRIPTS[cmd].apply(this, argv);
 };
 exports.send = (...argv) => {
 	// override this

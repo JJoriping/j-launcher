@@ -73,6 +73,8 @@ class Activity{
 				.on('click', e => this.onImageClick(e)),
 			sticker: $obj.find(".act-sticker")
 				.on('click', e => this.onStickerClick(e)),
+			leaf: $obj.find(".act-menu-leaf")
+				.on('click', e => this.onMenuLeafClick(e)),
 			prev: $obj.find(".act-menu-prev")
 				.on('click', e => this.onMenuPrevClick(e)),
 			save: $obj.find(".act-menu-save")
@@ -123,13 +125,16 @@ class Activity{
 	 * @param {*} room 방 정보
 	 */
 	setRoom(room){
+		let onRename = `if('${room.master.id}' == $data.myInfo.id) prompt('${L('room-name-change')}', '${room.name}');`;
+		let onUser = `ipc.send('cojer', 'RoomUsers', { cafeId: ${room.cafe.id}, roomId: '${room.id}' });`;
+
 		this.room = room;
 		this.nCount = 0;
 
 		$(`#at-item-${this.id}`)[room.isPublic ? 'removeClass' : 'addClass']("at-item-locked");
 		this.$stage.menu.children(".act-menu-title").html(`
-			<label class="actm-title-name"><b>${room.name}</b></label><i/>
-			<label class="actm-title-user">${L('act-mr-user', room.userCount)}</label><i/>
+			<label class="actm-title-name" onclick="${onRename}"><b>${room.name}</b></label><i/>
+			<label class="actm-title-user" onclick="${onUser}">${L('act-mr-user', room.userCount)}</label><i/>
 			<a class="actm-title-cafe" href="#" title="${L('visit-cafe')}" onclick="shell.openExternal('${CAFE_BOARD_URL(room.cafe.id)}');">${room.cafe.name}</a>
 			<label class="actm-title-watch actm-tw-${room.cafe.id}" href="#" title="${L('act-mr-watch')}" onclick="toggleWatch(${room.cafe.id});">${FA('eye')}</label><i/>
 			<label class="actm-title-attr">${room.isPublic ? L('act-mr-public') : L('act-mr-private')}</label>
@@ -216,14 +221,15 @@ class Activity{
 			case 'ArrowUp':
 			case 'ArrowDown':
 				this.onChatArrowUpDown(e);
-				break;
-			default: return;
+				return;
+			default: break;
 		}
+		this.history.index = -1;
 	}
 	onChatArrowUpDown(e){
 		if(!$data._hint){
-			if(e.key == 'ArrowUp') Activity.current.history.up();
-			else Activity.current.history.down();
+			if(e.key == 'ArrowUp') this.history.up();
+			else this.history.down();
 			return;
 		}
 		let isSub = false;
@@ -257,11 +263,12 @@ class Activity{
 			setCommandHint(true, e.currentTarget.value, $data[iList][$data[iKey]]);
 			vp = $(".chint-chosen")[0].getBoundingClientRect();
 		}
-		di1 = window.innerHeight - this.$stage.chat.height() - vp.height - 10;
-		di2 = di1 + vp.height - $stage.cmdHint.height();
-		if(vp.top > di1) $stage.cmdHint[0].scrollTop += vp.top - di1;
-		else if(vp.top < di2) $stage.cmdHint[0].scrollTop += vp.top - di2;
-		
+		if(vp){
+			di1 = window.innerHeight - this.$stage.chat.height() - vp.height - 10;
+			di2 = di1 + vp.height - $stage.cmdHint.height();
+			if(vp.top > di1) $stage.cmdHint[0].scrollTop += vp.top - di1;
+			else if(vp.top < di2) $stage.cmdHint[0].scrollTop += vp.top - di2;
+		}
 		e.preventDefault();
 	}
 	onChatKeyUp(e){
@@ -317,6 +324,10 @@ class Activity{
 	}
 	onStickerClick(e){
 		setCommandHint(true, "/sticker ");
+	}
+	onMenuLeafClick(e){
+		$stage.acts.toggleClass("channel-list-collapsed");
+		getAppMenu("chat-list").checked = $stage.acts.hasClass("channel-list-collapsed");
 	}
 	onMenuPrevClick(e){
 		this.$stage.prev.prop('disabled', true);
@@ -548,6 +559,7 @@ class ChatHistory{
 	down(){
 		let chat = this.activity.$stage.chat[0];
 
+		if(this.index == -1) return;
 		if(this.index == 0 && this.lastChat){
 			chat.value = this.lastChat;
 			return;

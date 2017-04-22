@@ -11,7 +11,14 @@ function command(msg, rId, group, addPre){
 	let user = (group == "cmd-send") ? null : USER_NOTICE;
 	let $R = emulateMessage("command", msg, `<label style="color: gray;">${FA('gear')}</label>${addPre || " "}`, rId, user);
 
-	if(group) $R.addClass(`act-talk-${group}`);
+	if(group){
+		if(group == "cmd-receive") $data._cmdReceive = [ msg, Date.now() ];
+		else if(group == "cmd-send" && msg.slice(0, 6) != "/share"){
+			delete $data._cmdReceive;
+			$data._cmdSend = [ msg, Date.now() ];
+		}
+		$R.addClass(`act-talk-${group}`);
+	}
 	return $R;
 }
 /**
@@ -204,27 +211,32 @@ function removeActivity(id){
  * @param {string} id 액티비티 식별자
  */
 function setActivity(id){
-	let cr;
+	let ca, cr;
 
 	$data.currentAct = id;
+	ca = Activity.current;
 	localStorage.setItem('recentAct', id);
 	$(".act-talk-last").remove();
-	if(Activity.current && Activity.current.nCount > 0){
-		$(`#actt-${id}-${Activity.current.nStartId}`).before(`<div class="act-talk act-talk-last"/>`);
-		Activity.current.nCount = 0;
+	if(ca && ca.nCount > 0){
+		$(`#actt-${id}-${ca.nStartId}`).before(`<div class="act-talk act-talk-last"/>`);
+		ca.nCount = 0;
 	}
 	$(".at-current").removeClass("at-current");
 	$(`#at-item-${id}`).removeClass("at-notify").addClass("at-current")
 		.children(".ati-count").hide();
 	$(".activity").hide();
 	$(`#act-${id}`).show();
-	if(id != ACT_OPENED && (cr = Activity.current.room)){
-		if(!Activity.current.hasOwnProperty('_prevChat') && cr.lastMsgSn > 0){
-			Activity.current._prevChat = cr.lastMsgSn;
-			Activity.current.requestPrevChat();
+
+	if(!ca) return;
+	if(id != ACT_OPENED && (cr = ca.room)){
+		if(!ca.hasOwnProperty('_prevChat') && cr.lastMsgSn > 0){
+			ca._prevChat = cr.lastMsgSn;
+			ca.requestPrevChat();
+		}else{
+			ca.$stage.board[0].scrollTop = ca.$stage.board[0].scrollHeight;
 		}
 	}
-	Activity.current.$stage.chat.focus();
+	ca.$stage.chat.focus();
 }
 /**
  * 탭을 갱신한다. 현재 생성된 액티비티가 나타난다.
@@ -251,7 +263,7 @@ function renderActTab(){
 		);
 		wrapperWidth += $item[0].getBoundingClientRect().width + 1;
 	});
-	$wrapper.width(wrapperWidth);
+	$wrapper.width(wrapperWidth + 1);
 
 	function onTabDragStart(e){
 		$data._movingTab = $(e.currentTarget);
@@ -353,6 +365,7 @@ function renderMyRooms(list, noPrev){
 			<div class="act-menu">
 				<div class="act-menu-title ellipse"></div>
 				<button class="act-menu-quit" title="${L('act-mr-quit')}">${FA('sign-out')}</button>
+				<button class="act-menu-leaf" title="${L('act-mr-leaf')}">${FA('leaf')}</button>
 				<button class="act-menu-prev" title="${L('act-mr-prev')}">${FA('backward')}</button>
 				<button class="act-menu-save" title="${L('act-mr-save')}">${FA('download')}</button>
 				<button class="act-menu-find" title="${L('act-mr-find')}">${FA('search')}</button>
@@ -393,7 +406,7 @@ function checkScrollBottom(obj){
 function processMessage(data, prev, saveId, silent){
 	let rId = data.room.id.replace(":", "-");
 	let act = $data.acts[rId];
-	let profile = $data.myInfo.profile[act.room.cafe.id] || USER_NOTICE;
+	let profile;
 	if(!act){
 		// 일대일 채팅이 생겼을 때 방 정보가 나타나지 않는 경우에 대한 처리
 		if(!data.room.name){
@@ -411,14 +424,11 @@ function processMessage(data, prev, saveId, silent){
 	let $talk;
 	let content = `${data.user.id}: ${data.message}`;
 
+	profile = $data.myInfo.profile[act.room.cafe.id] || USER_NOTICE;
 	if(isMe){
 		data.user = profile;
 		data.user.id = $data.myInfo.id;
 	}else{
-		if(checkBW(OPT['white'], content)){
-			isWhite = true;
-			if(!prev) notify(L('on-white', data.user.nickname), data.message);
-		}
 		if(checkBW(OPT['black'], content)){
 			if(!prev) ipc.send('black', {
 				id: data.user.id,
@@ -427,6 +437,11 @@ function processMessage(data, prev, saveId, silent){
 			});
 			return;
 		}
+		if(checkBW(OPT['white'], content)){
+			isWhite = true;
+			if(!prev) notify(L('on-white', data.user.nickname), data.message);
+		}
+		if(!prev) checkAnswerRule(rId, content);
 	}
 	if(OPT['no-image']) data.type = "text";
 
@@ -656,7 +671,7 @@ function produceText(text){
 		.replace(/(https?:\/\/.+?\..+?)(?:&nbsp;|\s|<br>|$)/gi, (v, p1) => `<a href="#" onclick="shell.openExternal('${p1}');">${p1}</a>`);
 	
 	if(OPT['youtube-view']) R = R
-		.replace(/<a\s+.+?onclick="shell\.openExternal\('https:\/\/(?:\w+?\.youtube\.com\/watch\?v=|youtu\.be\/)(.+?)(?:&.+)?'\);".*?>.+?<\/a>/g, (v, p1) => `${v}<iframe src="https://www.youtube.com/embed/${p1}" allowfullscreen frameborder="0"></iframe>`);
+		.replace(/<a\s+.+?onclick="shell\.openExternal\('https:\/\/(?:\w+?\.youtube\.com\/watch\?v=|youtu\.be\/)(.+?)(?:&.+)?'\);".*?>.+?<\/a>/g, (v, p1) => `${v}<br/><iframe src="https://www.youtube.com/embed/${p1}" allowfullscreen frameborder="0"></iframe>`);
 
 	return R;
 }
@@ -852,12 +867,46 @@ function checkIdle(){
  * 
  * @param {string[]} pool 대상을 검사할 문자열을 담은 배열
  * @param {string} serial 문맥. "(아이디): (내용)" 꼴로 주어진다.
- * @returns {boolean} 포함되는 경우 true
+ * @returns {string[]} 포함되는 경우 캡처 배열, 이외는 null
  */
 function checkBW(pool, serial){
-	for(let i in pool) if(serial.match(new RegExp(pool[i]))) return true;
+	let data;
 
-	return false;
+	for(let i in pool) if(data = serial.match(new RegExp(pool[i]))) return data;
+
+	return null;
+}
+/**
+ * 자동 응답 조건을 충족시키는 문맥인지 검사하고 충족되는 경우 자동 응답한다.
+ * 
+ * @param {string} rId 방 식별자
+ * @param {string} serial 문맥. "(아이디): (내용)" 꼴로 주어진다.
+ */
+function checkAnswerRule(rId, serial){
+	let arr = OPT['answer-rule'];
+	let i, len = arr.length;
+	let act = $data.acts[rId];
+	let answer, now;
+
+	if(!act) return;
+	for(i=0; i<len; i++){
+		let reg = new RegExp(arr[i][0]);
+		let data;
+
+		if(data = serial.match(reg)){
+			answer = arr[i][1];
+			data.slice(1).forEach((v, i) => {
+				answer = answer.replace(new RegExp("\\$" + (i + 1), 'g'), v);
+			});
+			break;
+		}
+	}
+	if(answer){
+		now = Date.now();
+		if(act._recentAnswer && now - act._recentAnswer < OPT['answer-cooldown']) return;
+		act._recentAnswer = now;
+		sendMessage('text', act.room, answer);
+	}
 }
 /**
  * 오류를 알린다.
@@ -867,4 +916,16 @@ function checkBW(pool, serial){
  */
 function error(code, msg){
 	alert(L(`error-${code}`, msg));
+}
+/**
+ * 줌을 변경한다. 줌은 25%~500% 범위 내에서 설정할 수 있으며 방향에 따라 10%p씩 변경된다.
+ * 0을 받은 경우 100%로 설정한다.
+ * 
+ * @param {number} dir 변경 방향(다음 중 하나: -1, 0, 1)
+ */
+function moveZoom(dir){
+	if(dir == -1) $data._zoom = Math.max(0.2, $data._zoom - 0.1);
+	else if(dir == 1) $data._zoom = Math.min(5, $data._zoom + 0.1);
+	else $data._zoom = 1;
+	webFrame.setZoomFactor($data._zoom);
 }

@@ -108,6 +108,28 @@ block Jungle
 		div.diag-bar.diag-tail
 			button.ok-button#diag-find-ok= L('diag-find-ok')
 			button#diag-find-back= L('diag-find-back')
+	+Dialog('answer', 400, 375)
+		div.diag-bar
+			label.diag-label!= L('diag-answer-tip')
+		div.diag-bar
+			div#diag-answer-table
+			div.diag-answer-menu
+				label#diag-answer-count
+				button.diag-action#diag-answer-add
+					+FA('plus')
+		div.diag-bar.diag-tail
+			button.ok-button#diag-answer-ok= L('OK')
+	+Dialog('users', 300, 400)
+		div.diag-bar
+			div#diag-users-table
+		div.diag-bar
+			label(for='diag-users-search')= L('diag-users-search')
+			input#diag-users-search(tyle="text", placeholder=L('diag-users-search'))
+		div.diag-bar.diag-tail
+			button.ok-button#diag-users-ok= L('diag-users-ok')
+	+Dialog('dict', 300, 400)
+		div.diag-bar
+			div#diag-dict-page
 	div#command-hint
 
 block Middle

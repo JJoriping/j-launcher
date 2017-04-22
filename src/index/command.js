@@ -2,6 +2,8 @@
  * 유효한 설정의 기본값을 나타낸다.
  */
 const OPT_DEFAULTS = {
+	'answer-cooldown': 10000,
+	'answer-rule': [],
 	'auto': {},
 	'black': [],
 	'black-log': "black.log",
@@ -30,6 +32,21 @@ const OPT_DEFAULTS = {
  * 유효한 설정의 목록을 나타낸다.
  */
 const OPT_KEYS = Object.keys(OPT_DEFAULTS);
+/**
+ * link 명령어의 유효한 링크 주소를 나타낸다.
+ */
+const LINK_TABLE = {
+	'bing': v => `http://www.bing.com/search?q=${v}`,
+	'daum': v => `http://search.daum.net/search?q=${v}`,
+	'google': v => `https://www.google.com/search?q=${v}`,
+	'namu': v => `https://namu.wiki/w/${v}`,
+	'naver': v => `https://search.naver.com/search.naver?query=${v}`,
+	'wiki': v => `https://en.wikipedia.org/wiki/${v}`
+};
+/**
+ * link 명령어의 유효한 링크 이름 목록을 나타낸다.
+ */
+const LINK_TABLE_KEYS = Object.keys(LINK_TABLE);
 /**
  * 명령어의 실행을 담당하는 상수 객체이다.
  */
@@ -67,6 +84,9 @@ const COMMANDS = {
 
 		command(res.toString(), data.room.id, 'cmd-receive', FA('random', true));
 	},
+	dict: data => {
+		
+	},
 	help: data => {
 		let pre = CMD_LIST.map(v => {
 			let usage = L('cmdu-' + v).replace(/\((.+?)\)/g, (v, p1) => `<u>${p1}</u>`);
@@ -95,6 +115,11 @@ const COMMANDS = {
 		catch(e){ data._res = e.toString(); data._addr = `<label style='color: orange;'>${FA('warning', true)}</label>`; }
 		command(data._res, data.room.id, 'cmd-receive', data._addr);
 	},
+	link: data => {
+		let res = LINK_TABLE[data.key](data.value);
+
+		command(res, data.room.id, 'cmd-receive');
+	},
 	note: data => {
 		Channel.send('note', {
 			target: data.target,
@@ -103,6 +128,16 @@ const COMMANDS = {
 	},
 	set: data => {
 		setOpt(data.key, eval(data.value));
+	},
+	share: data => {
+		if($data._cmdSend && $data._cmdReceive && $data._cmdSend[1] <= $data._cmdReceive[1]){
+			let sendData = "// " + $data._cmdSend[0].slice(1) + "\n";
+
+			if(data.data) sendData = "";
+			sendMessage('text', Activity.current.room, sendData + $data._cmdReceive[0]);
+		}else{
+			log(L('error-109'));
+		}
 	},
 	status: data => {
 		Channel.send('status', { status: data.data });
@@ -116,6 +151,7 @@ const COMMANDS = {
 			target: data.target,
 			data: data.data
 		});
+		log(L('sent-whisper', data.target));
 	}
 };
 /**
@@ -147,6 +183,13 @@ const CMD_STD_SUBHINT = function(poolBuilder, renderer){
  * 명령어의 하위 힌트 도출 함수들을 포함하는 상수 객체이다.
  */
 const CMD_SUBHINT = {
+	link: [
+		null,
+		new CMD_STD_SUBHINT(
+			() => LINK_TABLE_KEYS,
+			(v, styler) => `${styler(v)}`
+		)
+	],
 	set: [
 		null,
 		new CMD_STD_SUBHINT(
