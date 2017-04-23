@@ -56,6 +56,7 @@ $(() => {
 			},
 			dict: {
 				_: $("#diag-dict"),
+				_title: $("#diag-dict .diag-title"),
 				page: $("#diag-dict-page")
 			}
 		},
@@ -417,6 +418,39 @@ $(() => {
 			$data._usersPool = $data._roomUsers;
 			$stage.diag.users._.trigger('appear');
 		}
+	});
+	// 사전 대화 상자
+	$stage.diag.dict._.on('appear', e => {
+		const SOUND = [
+			/<button .*onclick=".+(https:\/\/.+?)'\);.*">.+<\/button>/i,
+			(v, p1) => `<button class="diag-dict-pi-sound" onclick="new Audio('${p1}').play();">${FA('volume-up')}</button>`
+		];
+		$stage.diag.dict._title.html(L('diag-dict-_title', $data._dict.query));
+		$stage.diag.dict.page.empty();
+		$data._dict.result.forEach((v, i) => {
+			let link = "";
+
+			if(v.link != "javascript:void(0);"){
+				link = `<a href="#" onclick="shell.openExternal('${v.link}');">${FA('external-link')}</a>`;
+			}
+			if(v.pron) v.title += v.pron;
+			$stage.diag.dict.page.append(`<div id="diag-dict-pi-${i}" class="diag-dict-pi">
+				<label>${v.title.replace(SOUND[0], SOUND[1])}</label>
+				${link}
+				<a class="diag-dict-pi-share" href="#">${FA('share-alt')}</a>
+				<ul>${v.desc.map(w => `<li>${w}</li>`).join('')}</ul>
+			</div>`);
+		});
+		$(".diag-dict-pi-share").on('click', e => {
+			let $item = $(e.currentTarget.parentNode);
+			let context = [ $item.children("label").text() ];
+			
+			$item.find("li").each((i, o) => {
+				context.push(`${String.fromCharCode(9312 + i)} ${$(o).text()}`);
+			});
+			sendMessage('text', Activity.current.room, context.join('\n'));
+			$dialog('dict').hide();
+		});
 	});
 	// 특수 액티비티 등록
 	$data.acts = {};

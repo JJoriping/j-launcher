@@ -184,6 +184,8 @@
 		"diag-answer-ti-action": "응답 내용",
 	"diag-users": "채팅 참여자 / 초대",
 		"diag-users-search": "초대할 사용자",
+	"diag-dict": "사전",
+		"diag-dict-_title": "사전 - {1}의 검색 결과",
 
 	"act-or-title": "공개 채팅",
 	"act-or-cafe-list": "< 카페 목록 >",

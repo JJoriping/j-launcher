@@ -77,7 +77,8 @@ function onEvent(ev, type, data){
 			$dialog('users').trigger('appear');
 			break;
 		case 'dict':
-			console.log(data);
+			$data._dict = data;
+			$dialog('dict', true).show().trigger('appear');
 			break;
 		case 'req-prev':
 			Activity.current.$stage.prev.trigger('click');

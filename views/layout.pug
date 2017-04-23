@@ -4,7 +4,7 @@ doctype html
 mixin Dialog(id, w, h)
 	div.dialog(id=`diag-${id}`, style=`display: none; width: ${w}px; height: ${h}px;`)
 		div.diag-head
-			div.diag-title= L(`diag-${id}`)
+			div.diag-title.ellipse= L(`diag-${id}`)
 			div.diag-close
 		div.diag-body
 			block
