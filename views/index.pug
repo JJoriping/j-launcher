@@ -1,5 +1,9 @@
 extends layout
 
+mixin StandardInput(id, type)
+	label(for=id)= L(id)
+	input(id=id, type=type || "text", placeholder=L(id))
+
 block JS
 	script(type="text/javascript", src="./js/index.min.js")
 	script(type="text/javascript", src="./js/jom.min.js")
@@ -10,17 +14,13 @@ block CSS
 block Jungle
 	+Dialog('login', 300, 300)
 		div.diag-bar
-			label= L('diag-login-id')
-			input#diag-login-id(type="text", placeholder=L('diag-login-id'))
+			+StandardInput('diag-login-id')
 		div.diag-bar
-			label= L('diag-login-pw')
-			input#diag-login-pw(type="password", placeholder=L('diag-login-pw'))
+			+StandardInput('diag-login-pw', "password")
 		div.diag-bar#diag-login-captcha-box(style='display: none;')
-			label(for='diag-login-captcha')= L('diag-login-captcha')
-			input#diag-login-captcha(type="text", placeholder=L('diag-login-captcha'))
+			+StandardInput('diag-login-captcha')
 		div.diag-bar#diag-login-otp-box(style='display: none;')
-			label(for='diag-login-otp')= L('diag-login-otp')
-			input#diag-login-otp(type="text", placeholder=L('diag-login-otp'))
+			+StandardInput('diag-login-otp')
 		div.diag-bar
 			label(for='diag-login-auto')= L('diag-login-auto')
 			input#diag-login-auto(type="checkbox")
@@ -43,11 +43,9 @@ block Jungle
 		div.diag-bar
 			label#diag-ce-target(style='width: 100%;')
 		div.diag-bar
-			label(for='diag-ce-serial')= L('diag-ce-serial')
-			input#diag-ce-serial(type="text", placeholder=L('diag-ce-serial'))
+			+StandardInput('diag-ce-serial')
 		div.diag-bar
-			label(for='diag-ce-pass')= L('diag-ce-pass')
-			input#diag-ce-pass(type="text", placeholder=L('diag-ce-pass'))
+			+StandardInput('diag-ce-pass')
 		div.diag-bar#diag-ce-output
 		div.diag-bar.diag-tail
 			button.ok-button#diag-ce-ok= L('OK')
@@ -77,7 +75,7 @@ block Jungle
 							+FA('plus')
 		div.diag-bar.diag-tail
 			button.ok-button#diag-bw-ok= L('OK')
-	+Dialog('macro', 400, 350)
+	+Dialog('macro', 400, 390)
 		div.diag-bar
 			label.diag-label= L('diag-macro-tip')
 		div.diag-bar
@@ -87,17 +85,21 @@ block Jungle
 					input.diag-macro-item-value
 					button.diag-action(onclick='$(this.parentNode).children("input").val("");')
 						+FA('remove')
+		div.diag-bar
+			label.diag-label= L('diag-macro-affix')
+		div.diag-bar
+			+StandardInput('diag-macro-prefix')
+		div.diag-bar
+			+StandardInput('diag-macro-suffix')
 		div.diag-bar.diag-tail
 			button.ok-button#diag-macro-ok= L('OK')
 	+Dialog('find', 400, 390)
 		div.diag-bar
 			label.diag-label!= L('diag-find-tip')
 		div.diag-bar
-			label(for='diag-find-input')= L('diag-find-input')
-			input#diag-find-input(type="text", placeholder=L('diag-find-input'))
+			+StandardInput('diag-find-input')
 		div.diag-bar
-			label(for='diag-find-msgid')= L('diag-find-msgid')
-			input#diag-find-msgid(type="text", placeholder=L('diag-find-msgid'))
+			+StandardInput('diag-find-msgid')
 		div.diag-bar
 			label(for='diag-find-opt-regex')= L('diag-find-opt-regex')
 			input#diag-find-opt-regex(type="checkbox")
@@ -123,8 +125,7 @@ block Jungle
 		div.diag-bar
 			div#diag-users-table
 		div.diag-bar
-			label(for='diag-users-search')= L('diag-users-search')
-			input#diag-users-search(tyle="text", placeholder=L('diag-users-search'))
+			+StandardInput('diag-users-search')
 	+Dialog('dict', 300, 400)
 		div.diag-bar
 			div#diag-dict-page

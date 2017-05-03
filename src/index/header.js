@@ -266,6 +266,7 @@ class Activity{
 					this.$stage.ghost.hide();
 				}
 				break;
+			case 'Tab':
 			case 'ArrowUp':
 			case 'ArrowDown':
 				this.onChatArrowUpDown(e);
@@ -275,16 +276,22 @@ class Activity{
 		this.history.index = -1;
 	}
 	onChatArrowUpDown(e){
-		if(!$data._hint){
-			if(e.key == 'ArrowUp') this.history.up();
-			else this.history.down();
-			return;
-		}
+		let dir;
+		let isTab = e.key == 'Tab';
 		let isSub = false;
 		let iKey, iList;
 		let vp;
 		let di1, di2;
+		let value;
 		
+		if(!$data._hint){
+			if(e.key == 'ArrowUp') this.history.up();
+			else if(e.key == 'ArrowDown') this.history.down();
+			return;
+		}else{
+			if(e.key == 'ArrowUp' || (e.shiftKey && isTab)) dir = -1;
+			else dir = 1;
+		}
 		if($data._subhint){
 			isSub = true;
 			iKey = '_shIndex';
@@ -296,7 +303,7 @@ class Activity{
 		if($data[iKey] == -1){
 			$data[iKey] = 0;
 		}else{
-			if(e.key == 'ArrowUp'){
+			if(dir == -1){
 				if(!$data[iKey]--) $data[iKey] = $data[iList].length - 1;
 			}else{
 				if(++$data[iKey] == $data[iList].length) $data[iKey] = 0;
@@ -308,8 +315,10 @@ class Activity{
 				vp = $(`#chint-sub-${$data._subhint[$data._shIndex]}`).addClass("chint-chosen")[0].getBoundingClientRect();
 			}
 		}else{
-			setCommandHint(true, e.currentTarget.value, $data[iList][$data[iKey]]);
-			vp = $(".chint-chosen")[0].getBoundingClientRect();
+			$("#command-hint>li.chint-chosen").removeClass("chint-chosen");
+			vp = document.getElementById(`chint-${$data._hList[$data._hIndex]}`);
+			vp.className += " chint-chosen";
+			vp = vp.getBoundingClientRect();
 		}
 		if(vp){
 			di1 = window.innerHeight - this.$stage.chat.height() - vp.height - 10;
@@ -317,11 +326,21 @@ class Activity{
 			if(vp.top > di1) $stage.cmdHint[0].scrollTop += vp.top - di1;
 			else if(vp.top < di2) $stage.cmdHint[0].scrollTop += vp.top - di2;
 		}
+		if(isTab){
+			if(isSub){
+				value = e.currentTarget.value.split(' ');
+				value[$data._cmdArgIndex] = $data._subhint[$data._shIndex];
+				value = value.join(' ');
+			}else{
+				value = "/" + $data._hList[$data._hIndex];
+			}
+			e.currentTarget.value = value;
+		}
 		e.preventDefault();
 	}
 	onChatKeyUp(e){
 		if($data._hint){
-			if(e.key == 'ArrowUp' || e.key == 'ArrowDown') return;
+			if(e.key == 'ArrowUp' || e.key == 'ArrowDown' || e.key == 'Tab') return;
 			$data._hIndex = -1;
 			setCommandHint(true, e.currentTarget.value);
 		}
@@ -477,7 +496,7 @@ class Channel{
 			.removeClass("actli-status-online actli-status-custom actli-status-afk")
 			.addClass(`actli-status-${STATUS_CLASS[user.status] || 'custom'}`);
 		$items.find(".act-list-item-nick").html(user.nickname);
-		$items.children(".act-list-item-exordial").html(user.exordial);
+		$items.children(".act-list-item-exordial").text(user.exordial || LANG['diag-status-' + user.status] || user.status);
 	}
 	static onMessage(e){
 		let data = JSON.parse(e.data);
@@ -544,7 +563,7 @@ class Channel{
 						<label class="act-list-item-nick"/>
 						<label class="act-list-item-id"> (${v.id})</label>
 					</div>
-					<div class="act-list-item-exordial ellipse"/>
+					<div class="act-list-item-exordial ellipse"></div>
 				</div>
 			`.trim()));
 			Channel.updateUser(v);

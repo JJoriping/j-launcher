@@ -418,7 +418,7 @@ function processMessage(data, prev, saveId, silent){
 	}
 	let $board = act.$stage.board, board = $board.get(0);
 	let isMe = data.user.id == $data.myInfo.id;
-	let isWhite = false;
+	let isWhite = null;
 	let isBottom = checkScrollBottom(board);
 	let now = new Date(data.time);
 	let $talk;
@@ -438,8 +438,8 @@ function processMessage(data, prev, saveId, silent){
 			});
 			return;
 		}
-		if(checkBW(OPT['white'], content)){
-			isWhite = true;
+		if(isWhite = checkBW(OPT['white'], content)){
+			isWhite = isWhite[0];
 			if(!prev) notify(L('on-white', data.user.nickname), data.message);
 		}
 		if(!prev) checkAnswerRule(rId, content);
@@ -536,6 +536,9 @@ function processMessage(data, prev, saveId, silent){
 			delete $data._$pending;
 		}
 	}else if(isWhite){
+		let $b = $talk.children(".actt-body");
+
+		$b.html(`<label style="color: coral;">${FA('bullhorn', true)}</label>` + $b.html().replace(isWhite, `<label class="act-white-context">${isWhite}</label>`));
 		$talk.addClass("act-white-talk");
 	}
 	if(isBottom || isMe){
@@ -728,6 +731,7 @@ function sendMessage(type, room, data){
 			return;
 		}
 		if(!data.trim()) return;
+		data = OPT['chat-prefix'] + data + OPT['chat-suffix'];
 	}
 	if($data._$pending) $data._$pending.remove();
 	$data._$pending = emulateMessage('pending', (typeof data == "string") ? data : "...", FA('spinner fa-spin', true), room.id)
@@ -744,9 +748,8 @@ function sendMessage(type, room, data){
  * 
  * @param {boolean} visible 힌트 표시 여부
  * @param {string} text 검색 문자열
- * @param {string} chosen 선택된 명령어
  */
-function setCommandHint(visible, text, chosen){
+function setCommandHint(visible, text){
 	let reg;
 	let argv;
 	let cArg;
@@ -773,11 +776,9 @@ function setCommandHint(visible, text, chosen){
 			<li id="chint-${v}">/${v.replace(reg, "<label class='chint-match'>$1</label>")} <label class="chint-usage">${L('cmdu-' + v)}</label><div class="chint-expl">%${v}%</div></li>
 		`).join('');
 
-		if(!chosen && list.length == 1){
-			chosen = list[0];
+		if(list.length == 1){
+			let chosen = list[0];
 			cArg = argv.length - 1;
-		}
-		if(chosen){
 			res = res
 				.replace(`>%${chosen}%`, ` style="display: block;">${L('cmdx-' + chosen)}`)
 				.replace("chint-" + chosen, `chint-${chosen}" class="chint-chosen`);

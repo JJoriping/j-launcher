@@ -8,6 +8,8 @@ const OPT_DEFAULTS = {
 	'black': [],
 	'black-log': "black.log",
 	'channel-pw': null,
+	'chat-prefix': "",
+	'chat-suffix': "",
 	'find-depth': 100,
 	'history-max': 100,
 	'idle-time': 300,
@@ -84,9 +86,7 @@ const COMMANDS = {
 
 		command(res.toString(), data.room.id, 'cmd-receive', FA('random', true));
 	},
-	dict: data => {
-		
-	},
+	dict: null,
 	help: data => {
 		let pre = CMD_LIST.map(v => {
 			let usage = L('cmdu-' + v).replace(/\((.+?)\)/g, (v, p1) => `<u>${p1}</u>`);
@@ -140,7 +140,7 @@ const COMMANDS = {
 		}
 	},
 	status: data => {
-		Channel.send('status', { status: data.data });
+		Channel.send('status', { status: data.data.trim() });
 	},
 	sticker: data => {
 		sendMessage('sticker', Activity.current.room, { pack: data.group, seq: data.seq });
@@ -205,6 +205,13 @@ const CMD_SUBHINT = {
 			<label style="color: gold;">${L('opts-current')}</label>: ${OPT[argv[1]]}<br/>
 			<label style="color: orange;">${L('default')}</label>: ${OPT_DEFAULTS[argv[1]]}
 		</div>` : ""
+	],
+	status: [
+		null,
+		new CMD_STD_SUBHINT(
+			() => [ "online" ].concat(OPT['status-list']).concat([ "afk" ]),
+			(v, styler) => styler(v)
+		)
 	],
 	sticker: [
 		null,

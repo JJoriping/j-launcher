@@ -30,6 +30,8 @@ $(() => {
 			macro: {
 				_: $("#diag-macro"),
 				list: $(".diag-macro-item"),
+				prefix: $("#diag-macro-prefix"),
+				suffix: $("#diag-macro-suffix"),
 				ok: $("#diag-macro-ok")
 			},
 			find: {
@@ -297,12 +299,15 @@ $(() => {
 			'white': $data._bw_white
 		});
 		$dialog('bw').hide();
+		location.reload();
 	});
 	// 매크로 대화 상자
 	$stage.diag.macro._.on('appear', e => {
 		$stage.diag.macro.list.each((i, o) => {
 			$(o).children("input").val(OPT['macro'][i]);
 		});
+		$stage.diag.macro.prefix.val(OPT['chat-prefix']);
+		$stage.diag.macro.suffix.val(OPT['chat-suffix']);
 	});
 	$stage.diag.macro.ok.on('click', e => {
 		let macro = [];
@@ -310,6 +315,8 @@ $(() => {
 		$stage.diag.macro.list.each((i, o) => {
 			macro[i] = $(o).children("input").val();
 		});
+		setOpt('chat-prefix', $stage.diag.macro.prefix.val());
+		setOpt('chat-suffix', $stage.diag.macro.suffix.val());
 		setOpt('macro', macro);
 		$dialog('macro').hide();
 	});
@@ -451,6 +458,7 @@ $(() => {
 			sendMessage('text', Activity.current.room, context.join('\n'));
 			$dialog('dict').hide();
 		});
+		$stage.diag.dict.page.scrollTop(0);
 	});
 	// 특수 액티비티 등록
 	$data.acts = {};
