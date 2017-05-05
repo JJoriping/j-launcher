@@ -8,10 +8,16 @@ $(() => {
 	$stage = {
 		body: $("body"),
 		diag: {
-			loginCaptcha: $("#diag-login-captcha-box"),
-			loginOTP: $("#diag-login-otp-box"),
-			loginOK: $("#diag-login-ok"),
-			loginOut: $("#diag-login-output"),
+			login: {
+				_: $("#diag-login"),
+				captcha: $("#diag-login-captcha-box"),
+				id: $("#diag-login-id"),
+				pw: $("#diag-login-pw"),
+				otpBox: $("#diag-login-otp-box"),
+				otp: $("#diag-login-otp"),
+				ok: $("#diag-login-ok"),
+				out: $("#diag-login-output")
+			},
 			uploadImg: $("#diag-upload-img"),
 			uploadOK: $("#diag-upload-ok"),
 			ceOK: $("#diag-ce-ok"),
@@ -71,9 +77,7 @@ $(() => {
 	if(getAppMenu("chat-list").checked) onEvent(null, 'chan-list');
 	// 소리 등록
 	$sound = {};
-	[
-		'k', 'alarm'
-	].map(v => $sound[v] = new Audio(`media/${v}.mp3`));
+	SOUNDS.map(v => $sound[v] = new Audio(OPT['sounds'][v]));
 	// 전역 입력 핸들링 / 유휴 상태 검사
 	document.addEventListener('webkitfullscreenchange', e => {
 		if(!document.fullscreen){
@@ -82,9 +86,15 @@ $(() => {
 			board.scrollTop = board.scrollHeight - board.clientHeight;
 		}
 	});
+	window.onblur = e => {
+		$(".ati-tab-index").hide();
+	};
 	window.onkeydown = e => {
 		breakIdle();
 		switch(e.key){
+			case 'Alt':
+				$(".ati-tab-index").show();
+				break;
 			case 'Enter':
 				$(".dialog:visible .ok-button:last").trigger('click');
 				break;
@@ -107,6 +117,26 @@ $(() => {
 					if(vp.left < 0) $("#at-wrapper").css('left', "-=" + vp.left);
 					if(vp.left + vp.width > window.innerWidth) $("#at-wrapper").css('left', "-=" + (vp.left + vp.width - window.innerWidth))
 				}
+				break;
+			case 'q':
+				if(e.ctrlKey){
+					Activity.current.$stage.quit.trigger('click');
+				}
+				break;
+			case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': case '0':
+				if(e.altKey){
+					let obj = $(".at-item").get(e.shiftKey * 10 + Number(e.key));
+
+					if(obj) setActivity(obj.id.split('-').slice(2).join('-'));
+				}
+				break;
+			default: return;
+		}
+	};
+	window.onkeyup = e => {
+		switch(e.key){
+			case 'Alt':
+				$(".ati-tab-index").hide();
 				break;
 			default: return;
 		}
@@ -159,14 +189,17 @@ $(() => {
 		}
 	});
 	// 로그인 대화 상자
-	$stage.diag.loginOK.on('click', e => {
-		$stage.diag.loginOK.prop('disabled', true);
-		$stage.diag.loginOut.css('color', "").html("");
+	$stage.diag.login._.on('appear', e => {
+		$stage.diag.login.id.focus();
+	});
+	$stage.diag.login.ok.on('click', e => {
+		$stage.diag.login.ok.prop('disabled', true);
+		$stage.diag.login.out.css('color', "").html("");
 		if($data._loginForm && $data._loginForm['otp']) $data._loginForm['otp'] = $("#diag-login-otp").val();
 		ipc.send('cojer', 'Login', {
-			id: $("#diag-login-id").val(),
-			pw: $("#diag-login-pw").val(),
-			captcha: $("#diag-login-captcha").val(),
+			id: $stage.diag.login.id.val(),
+			pw: $stage.diag.login.pw.val(),
+			captcha: $stage.diag.login.captcha.val(),
 			captchaKey: $data._ckey,
 			form: $data._loginForm,
 			auto: $("#diag-login-auto").is(':checked'),

@@ -6,9 +6,9 @@
   "scripts": {
     "start": "npm run bundle && electron .",
     "bundle": "node ./lib/jbundle.js",
-    "package-win": "electron-packager . j-launcher --prune --overwrite --platform=win32 --ignore auth\\.json --ignore clipboard\\.png --out ./build",
-    "package-linux": "electron-packager . j-launcher --prune --overwrite --platform=linux --ignore auth\\.json --ignore clipboard\\.png --out ./build",
-    "package-mac": "electron-packager . j-launcher --prune --overwrite --platform=darwin --ignore auth\\.json --ignore clipboard\\.png --out ./build",
+    "package-win": "electron-packager . j-launcher --prune --overwrite --platform=win32 --ignore auth\\.json --ignore clipboard\\.png --out ./build --icon ./views/img/logo.ico",
+    "package-linux": "electron-packager . j-launcher --prune --overwrite --platform=linux --ignore auth\\.json --ignore clipboard\\.png --out ./build --icon ./views/img/logo.ico",
+    "package-mac": "electron-packager . j-launcher --prune --overwrite --platform=darwin --ignore auth\\.json --ignore clipboard\\.png --out ./build --icon ./views/img/logo.ico",
     "package-all": "npm run package-win && npm run package-linux && npm run package-mac"
   },
   "repository": "https://github.com/JJoriping/j-launcher.git",

@@ -247,11 +247,13 @@ function renderActTab(){
 	let wrapperWidth = 0;
 
 	$stage.actTab.empty().off('wheel').on('wheel', onWheel).append($wrapper);
-	list.map(v => $data.acts[v]).sort((a, b) => a.ord - b.ord).forEach(v => {
+	list.map(v => $data.acts[v]).sort((a, b) => a.ord - b.ord).forEach((v, i) => {
 		let $item;
+		let hotkey = ((i > 9) ? "^" : "") + i % 10;
 
 		$wrapper.append($item = $(`
 			<div id="at-item-${v.id}" class="at-item ellipse${(v.room && !v.room.isPublic) ? " at-item-locked" : ""}" draggable="true" onclick="setActivity('${v.id}');">
+				<label class="ati-tab-index" style="display: none;">${hotkey}</label>
 				<label class="ati-count" style="display: none;"></label>
 				<i class="fa fa-lock ati-locked"/>
 				<label>${v.title}</label>
@@ -417,12 +419,13 @@ function processMessage(data, prev, saveId, silent){
 		act = $data.acts[rId];
 	}
 	let $board = act.$stage.board, board = $board.get(0);
-	let isMe = data.user.id == $data.myInfo.id;
+	let isMe = $data.myInfo && data.user.id == $data.myInfo.id;
 	let isWhite = null;
 	let isBottom = checkScrollBottom(board);
 	let now = new Date(data.time);
 	let $talk;
 	let content = `${data.user.id}: ${data.message}`;
+	let chatDate = act._chatDate[~~prev];
 
 	profile = $data.myInfo.profile[act.room.cafe.id] || USER_NOTICE;
 	if(isMe){
@@ -550,8 +553,17 @@ function processMessage(data, prev, saveId, silent){
 		act._prevChat++;
 		board.removeChild(board.children[0]);
 	}
+	if(chatDate[0] != now.toLocaleDateString()){
+		if(prev){
+			$talk.after(cNotice("date", chatDate[0], L('notice-date-' + chatDate[1])));
+		}else{
+			$talk.before(cNotice("date", now.toLocaleDateString(), L('notice-date-' + now.getDay())));
+		}
+		chatDate[0] = now.toLocaleDateString();
+		chatDate[1] = now.getDay();
+	}
 	if(saveId) act._lastMsgId = data.id;
-	playSound('k');
+	playSound('chat');
 
 	function cUser(user){
 		return `
@@ -664,8 +676,16 @@ function produceText(text){
 	const TABLE = {
 		'<': "&lt;", '>': "&gt;", '&': "&amp;", '\n': "<br>", ' ': "&nbsp;"
 	};
-	let R;
+	let R, prefix = "", suffix = "";
 	
+	if(OPT['andromedish']){
+		R = Andromedish.parse(text);
+		if(text != R){
+			prefix = `<label style="color: orange;">${FA('flash', true)}</label><label title="${text.replace(/"/g, "\\\"")}">`;
+			text = R;
+			suffix = "</label>";
+		}
+	}
 	if(OPT['use-jom']) R = JOM.parse(text
 		.replace(/ /g, "&nbsp;")
 		.replace(/\n/g, "\n\n")
@@ -677,7 +697,7 @@ function produceText(text){
 	if(OPT['youtube-view']) R = R
 		.replace(/<a\s+.+?onclick="shell\.openExternal\('https:\/\/(?:\w+?\.youtube\.com\/watch\?v=|youtu\.be\/)(.+?)(?:&.+)?'\);".*?>.+?<\/a>/g, (v, p1) => `${v}<br/><iframe src="https://www.youtube.com/embed/${p1}" allowfullscreen frameborder="0"></iframe>`);
 
-	return R;
+	return prefix + R + suffix;
 }
 /**
  * 주어진 명령어의 한 인자에 대한 하위 힌트를 가공한다.
@@ -842,6 +862,9 @@ function requestJoin(cId, rId){
  */
 function playSound(key){
 	if(OPT['mute']) return;
+	if(!$sound[key]){
+		return console.warn(`Unknown sound key: ${key}`);
+	}
 	$sound[key].play();
 }
 /**
@@ -858,6 +881,7 @@ function breakIdle(){
  * 유휴 상태를 확인한다.
  */
 function checkIdle(){
+	if(!$data.myInfo) return;
 	if($data.isIdle) return;
 	if($data.myInfo.status && $data.myInfo.status != "online") return;
 	if(++$data._idle >= OPT['idle-time']){

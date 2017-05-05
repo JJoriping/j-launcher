@@ -31,7 +31,22 @@ const CHANNEL_MENU = Remote.Menu.buildFromTemplate([
 const USERS_MENU = Remote.Menu.buildFromTemplate([
 	{
 		label: L('menu-diagu-1to1'),
-		click: () => { }
+		click: () => {
+			let i, user;
+
+			for(i in $data._roomUsers) if($data._roomUsers[i].userId == $data._roomUsersTarget){
+				user = $data._roomUsers[i];
+				break;
+			}
+			if(user) ipc.send('cojer', 'CreateRoom', {
+				cafe: $data._roomUsersAct.room.cafe,
+				userList: [ $data.myInfo.id, $data._roomUsersTarget ],
+				options: {
+					name: "",
+					isPublic: false
+				}
+			});
+		}
 	},
 	{
 		label: L('menu-diagu-kick'),
@@ -87,11 +102,16 @@ class Activity{
 	}
 
 	constructor(id, title, ord, $obj){
+		let now = new Date();
+
 		this.id = id;
 		this.title = title;
 		this.ord = ord;
 		this.history = new ChatHistory(this);
 		this.$obj = $obj;
+		this._chatDate = [ "curr", "prev" ].map(() => [
+			now.toLocaleDateString(), now.getDay()
+		]);
 		
 		this.$stage = {
 			board: $obj.children(".act-board")

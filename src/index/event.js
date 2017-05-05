@@ -2,7 +2,7 @@ function onEvent(ev, type, data){
 	switch(type){
 		case 'login-ok':
 			$data.myInfo = data;
-			$stage.diag.loginOK.prop('disabled', false);
+			$stage.diag.login.ok.prop('disabled', false);
 			notify(L('login-ok'));
 			$dialog('login').hide();
 			renderMyCafes();
@@ -15,35 +15,35 @@ function onEvent(ev, type, data){
 			break;
 		case 'login-no':
 			if(!data) data = {};
-			$stage.diag.loginOK.prop('disabled', false);
-			$stage.diag.loginOut.css('color', "red").html(data.text);
+			$stage.diag.login.ok.prop('disabled', false);
+			$stage.diag.login.out.css('color', "red").html(data.text);
 			notify(L('login-no'), data.text);
 			if(data.captcha){
 				$data._ckey = data.match(/key=(\w+)/)[1];
-				$stage.diag.loginCaptcha.show();
+				$stage.diag.login.captcha.show();
 			}else if(data.addDevice){
 				$data._loginForm = {};
-				$stage.diag.loginOut.css('color', "red")
+				$stage.diag.login.out.css('color', "red")
 					.append($("<label>").addClass("diag-label").html(L('error-121')))
 					.append(data.addDevice);
-				$stage.diag.loginOut.find("input[type=hidden]").each((i, o) => {
+				$stage.diag.login.out.find("input[type=hidden]").each((i, o) => {
 					$data._loginForm[o.name] = o.value;
 				});
-				$stage.diag.loginOut.find(".btn_upload>a").attr('onclick', "").on('click', e => {
+				$stage.diag.login.out.find(".btn_upload>a").attr('onclick', "").on('click', e => {
 					$data._loginForm['regyn'] = "Y";
-					$stage.diag.loginOK.trigger('click');
+					$stage.diag.login.ok.trigger('click');
 				});
-				$stage.diag.loginOut.find(".btn_cancel>a").attr('onclick', "").on('click', e => {
+				$stage.diag.login.out.find(".btn_cancel>a").attr('onclick', "").on('click', e => {
 					$data._loginForm['regyn'] = "N";
-					$stage.diag.loginOK.trigger('click');
+					$stage.diag.login.ok.trigger('click');
 				});
 			}else if(data.otp){
 				$data._loginForm = {};
-				$stage.diag.loginOut.find("input[type=hidden]").each((i, o) => {
+				$stage.diag.login.out.find("input[type=hidden]").each((i, o) => {
 					$data._loginForm[o.name] = o.value;
 				});
 				$data._loginForm['otp'] = true;
-				$stage.diag.loginOTP.show();
+				$stage.diag.login.otpBox.show();
 			}
 			break;
 		case 'logout':
@@ -112,6 +112,9 @@ function onEvent(ev, type, data){
 			break;
 		case 'find':
 			renderFindTable(data);
+			break;
+		case 'refresh':
+			location.reload();
 			break;
 		case 'join':
 			renderMyRooms([ data ], true);

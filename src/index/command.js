@@ -2,6 +2,7 @@
  * 유효한 설정의 기본값을 나타낸다.
  */
 const OPT_DEFAULTS = {
+	'andromedish': true,
 	'answer-cooldown': 10000,
 	'answer-rule': [],
 	'auto': {},
@@ -22,6 +23,10 @@ const OPT_DEFAULTS = {
 	'no-trace': false,
 	'no-update-notice': false,
 	'prev-per-req': 30,
+	'sounds': {
+		'chat': "./media/k.mp3",
+		'alarm': "./media/alarm.mp3"
+	},
 	'status-list': [],
 	'use-jom': false,
 	'viewer-resize': true,
@@ -34,6 +39,10 @@ const OPT_DEFAULTS = {
  * 유효한 설정의 목록을 나타낸다.
  */
 const OPT_KEYS = Object.keys(OPT_DEFAULTS);
+/**
+ * 유효한 소리 식별자의 목록을 나타낸다.
+ */
+const SOUNDS = [ "chat", "alarm" ];
 /**
  * link 명령어의 유효한 링크 주소를 나타낸다.
  */
