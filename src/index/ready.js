@@ -386,9 +386,11 @@ $(() => {
 		$stage.diag.macro.list.each((i, o) => {
 			macro[i] = $(o).children("input").val();
 		});
-		setOpt('chat-prefix', $stage.diag.macro.prefix.val());
-		setOpt('chat-suffix', $stage.diag.macro.suffix.val());
-		setOpt('macro', macro);
+		setOpt({
+			'chat-prefix': $stage.diag.macro.prefix.val(),
+			'chat-suffix': $stage.diag.macro.suffix.val(),
+			'macro': macro
+		});
 		$dialog('macro').hide();
 	});
 	// 대화 검색 대화 상자
