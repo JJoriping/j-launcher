@@ -49,16 +49,21 @@ block Jungle
 		div.diag-bar#diag-ce-output
 		div.diag-bar.diag-tail
 			button.ok-button#diag-ce-ok= L('OK')
-	+Dialog('status', 300, 200)
+	+Dialog('status', 300, 250)
 		div.diag-bar
-			label(style='width: 100%;')= L('diag-status-tip')
+			img#diag-status-image
+			div#diag-status-name
+			div#diag-status-status
 		div.diag-bar
-			label(for='diag-status-list')= L('diag-status-list')
-			select#diag-status-list
-				option(value='online')= L('diag-status-online')
-				each v in locals.OPT['status-list']
-					option(value=v)= v
-				option(value='afk')= L('diag-status-afk')
+			+StandardInput('diag-status-exordial')
+		div.diag-bar
+			label= L('diag-status-level')
+			div#diag-status-level
+		div.diag-bar
+			label= L('diag-status-jong')
+			div#diag-status-jong
+			div#diag-status-jong-graph
+				div#diag-status-jong-graph-guage
 		div.diag-bar.diag-tail
 			button.ok-button#diag-status-ok= L('OK')
 	+Dialog('bw', 500, 300)

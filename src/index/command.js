@@ -18,6 +18,7 @@ const OPT_DEFAULTS = {
 	'max-chat': 100,
 	'mute': false,
 	'no-ask-upload': false,
+	'no-channel-list': [],
 	'no-channel-notice': false,
 	'no-image': false,
 	'no-trace': false,
@@ -76,6 +77,22 @@ const COMMANDS = {
 			else tui += "□";
 		}
 		command(`${tui} ${(chance).toFixed(2)}%`, data.room.id, 'cmd-receive', FA('random', true));
+	},
+	channel: data => {
+		let arr = OPT['no-channel-list'];
+		let id = Activity.current.id;
+		let ii = arr.indexOf(id);
+		let text;
+
+		if(ii == -1){
+			text = L('channel-closed', Activity.current.room.name);
+			arr.push(id);
+		}else{
+			text = L('channel-opened', Activity.current.room.name);
+			arr.splice(ii, 1);
+		}
+		setOpt('no-channel-list', arr);
+		command(text, data.room.id, "cmd-receive");
 	},
 	clear: data => {
 		clearBoard($data.currentAct);

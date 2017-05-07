@@ -21,8 +21,17 @@ $(() => {
 			uploadImg: $("#diag-upload-img"),
 			uploadOK: $("#diag-upload-ok"),
 			ceOK: $("#diag-ce-ok"),
-			statusList: $("#diag-status-list"),
-			statusOK: $("#diag-status-ok"),
+			status: {
+				_: $("#diag-status"),
+				image: $("#diag-status-image"),
+				name: $("#diag-status-name"),
+				status: $("#diag-status-status"),
+				exordial: $("#diag-status-exordial"),
+				level: $("#diag-status-level"),
+				jong: $("#diag-status-jong"),
+				jongGuage: $("#diag-status-jong-graph-guage"),
+				ok: $("#diag-status-ok")
+			},
 			bw: {
 				_: $("#diag-bw"),
 				bTable: $("#diag-bw-black"),
@@ -106,16 +115,13 @@ $(() => {
 					let $list = $(".at-item");
 					let $c = $(".at-current");
 					let len = $list.length;
-					let vp;
 
 					if(e.shiftKey) $c = $c.prev()[0];
 					else $c = $c.next()[0];
 					if(!$c) $c = $list.get(!e.shiftKey - 1);
 					
 					setActivity($c.id.slice(8));
-					vp = $c.getBoundingClientRect();
-					if(vp.left < 0) $("#at-wrapper").css('left', "-=" + vp.left);
-					if(vp.left + vp.width > window.innerWidth) $("#at-wrapper").css('left', "-=" + (vp.left + vp.width - window.innerWidth))
+					window._onviewport($c.getBoundingClientRect());
 				}
 				break;
 			case 'q':
@@ -127,11 +133,18 @@ $(() => {
 				if(e.altKey){
 					let obj = $(".at-item").get(e.shiftKey * 10 + Number(e.key));
 
-					if(obj) setActivity(obj.id.split('-').slice(2).join('-'));
+					if(obj){
+						setActivity(obj.id.split('-').slice(2).join('-'));
+						window._onviewport(obj.getBoundingClientRect());
+					}
 				}
 				break;
 			default: return;
 		}
+	};
+	window._onviewport = vp => {
+		if(vp.left < 0) $("#at-wrapper").css('left', "-=" + vp.left);
+		if(vp.left + vp.width > window.innerWidth) $("#at-wrapper").css('left', "-=" + (vp.left + vp.width - window.innerWidth));
 	};
 	window.onkeyup = e => {
 		switch(e.key){
@@ -237,8 +250,33 @@ $(() => {
 		});
 	});
 	// 상태 대화 상자
-	$stage.diag.statusOK.on('click', e => {
-		Channel.send('status', { status: $stage.diag.statusList.val() });
+	$stage.diag.status._.on('appear', e => {
+		let data = $data._statusProfile;
+		let isMe;
+		
+		if(!data) $data._statusProfile = data = Channel.myInfo;
+		isMe = data.id == $data.myInfo.id;
+
+		$stage.diag.status.exordial.prop('disabled', !isMe);
+
+		$stage.diag.status.image.attr('src', data.image);
+		$stage.diag.status.name.html(`${data.nickname} (${data.id})`);
+		$stage.diag.status.status
+			.removeClass("-status-online status-custom status-afk")
+			.addClass(`status-${STATUS_CLASS[data.status] || 'custom'}`)
+			.text(LANG['diag-status-' + data.status] || data.status);
+		$stage.diag.status.exordial.val(data.exordial);
+		$stage.diag.status.level.html(data.level);
+		$stage.diag.status.jong.html(data.jong);
+		$stage.diag.status.jongGuage.css('width', (data.jong - data.jongOffset) / (data.jongNext - data.jongOffset) * 100 + "%");
+	});
+	$stage.diag.status.ok.on('click', e => {
+		if($data._statusProfile.id == $data.myInfo.id){
+			Channel.send('exordial', {
+				exordial: $stage.diag.status.exordial.val()
+			});
+		}
+		// Channel.send('status', { status: $stage.diag.statusList.val() });
 		$dialog('status').hide();
 	});
 	// 대화 흑백 설정 상자

@@ -26,6 +26,13 @@ const CHANNEL_MENU = Remote.Menu.buildFromTemplate([
 	{
 		label: L('menu-actli-call'),
 		click: () => Channel.callUser($data._cTarget)
+	},
+	{
+		label: L('menu-actli-info'),
+		click: () => {
+			$data._statusProfile = Channel.users[$data._cTarget];
+			$dialog('status', true).show().trigger('appear');
+		}
 	}
 ]);
 const USERS_MENU = Remote.Menu.buildFromTemplate([
@@ -158,7 +165,11 @@ class Activity{
 
 		if(!$list) $list = this.$stage.list;
 		if(OPT['channel-pw']){
-			this.channel = new Channel(this.id, $list);
+			if(OPT['no-channel-list'].includes(this.id)){
+				this.$stage.list.html(L('act-mr-chan-black'));
+			}else{
+				this.channel = new Channel(this.id, $list);
+			}
 		}else{
 			this.$stage.list.html(`
 				<label>${L('act-mr-chan-no')}</label><br/>
@@ -453,6 +464,7 @@ class Channel{
 	static init(id, pw){
 		let socket = new WebSocket(`ws://${CHANNEL_HOST}:525/${id}@${pw}`);
 		
+		Channel.users = {};
 		if(Channel.socket){
 			Channel._queue = [];
 			Channel.socket.onmessage = undefined;
@@ -508,15 +520,25 @@ class Channel{
 	static updateUser(user){
 		let $items = $(`.actli-${user.id}`);
 		let status = global.LANG[`diag-status-${user.status}`] || user.status;
-		let title = `${user.nickname} (${user.id})\n${status}`;
+		let title = `${user.nickname} (${user.id})\n${user.exordial}`;
 
-		if($data.myInfo.id == user.id) $data.myInfo.status = user.status;
+		if($data.myInfo.id == user.id){
+			Channel.myInfo = user;
+			$data.myInfo.status = user.status;
+		}
+		Channel.users[user.id] = user;
+
+		if($data._statusProfile && $data._statusProfile.id == user.id && $dialog('status').is(":visible")){
+			$data._statusProfile = user;
+			$dialog('status').trigger('appear');
+		}
 		$items.attr('title', title);
-		$items.children(".act-list-item-status")
-			.removeClass("actli-status-online actli-status-custom actli-status-afk")
-			.addClass(`actli-status-${STATUS_CLASS[user.status] || 'custom'}`);
+		$items.children(".act-list-item-level").css('background-image', `url(${user.image})`);
 		$items.find(".act-list-item-nick").html(user.nickname);
-		$items.children(".act-list-item-exordial").text(user.exordial || LANG['diag-status-' + user.status] || user.status);
+		$items.children(".act-list-item-exordial")
+			.removeClass("status-online status-custom status-afk")
+			.addClass(`status-${STATUS_CLASS[user.status] || 'custom'}`)
+			.text(status);
 	}
 	static onMessage(e){
 		let data = JSON.parse(e.data);
@@ -524,23 +546,27 @@ class Channel{
 
 		switch(data.type){
 			case 'welcome':
+				Channel.myInfo = data.my;
 				Channel.flushQueue(e.target);
 				break;
 			case 'error':
 				error(data.code, data.msg);
 				break;
 			case 'conn':
-				if(!OPT['optx-no-channel-notice']) log(L('chan-conn', data.user.nickname), chan.rId);
+				if(!OPT['no-channel-notice']) log(L('chan-conn', data.user.nickname), chan.rId);
 				chan.list.push(data.user);
+				Channel.users = data.user;
 				chan.renderList();
 				break;
 			case 'disconn':
-				if(!OPT['optx-no-channel-notice']) log(L('chan-disconn', data.user.nickname), chan.rId);
+				if(!OPT['no-channel-notice']) log(L('chan-disconn', data.user.nickname), chan.rId);
 				chan.list = chan.list.filter(v => v.id != data.user.id);
+				delete Channel.users[data.user.id];
 				chan.renderList();
 				break;
 			case 'list':
 				chan.list = data.list;
+				chan.list.forEach(v => Channel.users[v.id] = v);
 				chan.renderList();
 				break;
 			case 'notes':
@@ -578,11 +604,8 @@ class Channel{
 
 			this.$list.append($item = $(`
 				<div id="actli-${this.rId}-${v.id}" class="act-list-item actli-${v.id}">
-					<div class="act-list-item-status"/>
-					<div class="act-list-item-name ellipse">
-						<label class="act-list-item-nick"/>
-						<label class="act-list-item-id"> (${v.id})</label>
-					</div>
+					<div class="act-list-item-level"/>
+					<div class="act-list-item-name ellipse"><label class="act-list-item-nick"/><label class="act-list-item-id"> (${v.id})</label></div>
 					<div class="act-list-item-exordial ellipse"></div>
 				</div>
 			`.trim()));

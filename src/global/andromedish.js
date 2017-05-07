@@ -1,5 +1,7 @@
 var Andromedish = {
 	parse: text => {
+		if(!text.match(/^[^\w]*[qwertasdfgzxcvQWERT][a-zA-Z]{3}/)) return text;
+
 		const W = {
 			// 초성
 			'q': [ 7, -1, 17 ],

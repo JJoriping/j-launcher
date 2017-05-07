@@ -263,6 +263,7 @@ function renderActTab(){
 			.on('dragenter', onTabDragEnter)
 			.on('dragend', onTabDragEnd)
 		);
+		if(v.nCount) $item.addClass("at-notify").children(".ati-count").show().html(v.nCount);
 		wrapperWidth += $item[0].getBoundingClientRect().width + 1;
 	});
 	$wrapper.width(wrapperWidth + 1);
@@ -276,6 +277,7 @@ function renderActTab(){
 	function onTabDragEnter(e){
 		let $t = $(e.originalEvent.target);
 		let tId = $t.attr('id');
+		let temp;
 
 		if(tId == "act-tab" || tId == "at-wrapper"){
 			$t.find(".at-item:last-child").after($data._movingTab);
@@ -287,6 +289,7 @@ function renderActTab(){
 		saveTabOrdinal();
 		delete $data._movingTab;
 		$stage.actTab.off('dragenter', onTabDragEnter);
+		renderActTab();
 	}
 	function onWheel(e){
 		let delta = e.originalEvent.deltaX || e.originalEvent.deltaY;
@@ -301,7 +304,10 @@ function renderActTab(){
 function saveTabOrdinal(){
 	let ord = [];
 	
-	$stage.actTab.find(".at-item").each((i, o) => ord.push(o.id));
+	$stage.actTab.find(".at-item").each((i, o) => {
+		$data.acts[o.id.slice(8)].ord = i;
+		ord.push(o.id);
+	});
 	localStorage.setItem('tab-ordinal', ord.join(','));
 	loadTabOrdinal();
 }
@@ -452,7 +458,7 @@ function processMessage(data, prev, saveId, silent){
 	switch(data.type){
 		case "text": content = `
 			${cUser(data.user)}
-			<div class="actt-body">${data.preMessage || ''}${produceText(data.message)}</div>
+			<div class="actt-body">${data.preMessage || ''}${produceText(data.message, data.noAndro)}</div>
 			`;
 			break;
 		case "image": content = `
@@ -602,7 +608,8 @@ function emulateMessage(type, msg, pre, rId, user, time, silent){
 		type: "text",
 		preMessage: pre || "",
 		message: msg,
-		time: time || Date.now()
+		time: time || Date.now(),
+		noAndro: true
 	}, false, false, silent);
 }
 /**
@@ -670,18 +677,19 @@ function processImage(img, source, downScroll){
  * 불러온 텍스트 정보를 가공한다.
  * 
  * @param {string} text 텍스트
+ * @param {boolean} noAndro true인 경우 안드로어 변환을 하지 않는다.
  * @returns {string} 가공된 텍스트
  */
-function produceText(text){
+function produceText(text, noAndro){
 	const TABLE = {
 		'<': "&lt;", '>': "&gt;", '&': "&amp;", '\n': "<br>", ' ': "&nbsp;"
 	};
 	let R, prefix = "", suffix = "";
 	
-	if(OPT['andromedish']){
+	if(!noAndro && OPT['andromedish']){
 		R = Andromedish.parse(text);
 		if(text != R){
-			prefix = `<label style="color: orange;">${FA('flash', true)}</label><label title="${text.replace(/"/g, "\\\"")}">`;
+			prefix = `<label style="color: orange;">${FA('flash', true)}</label><label title="${text.replace(/"/g, "＂")}">`;
 			text = R;
 			suffix = "</label>";
 		}
